@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Ofertas & Precificação Comercial</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- SheetJS para leitura e exportação nativa .xlsx -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- html2pdf para geração de relatórios PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              bg: '#0B0F17',
+              card: '#151C2C',
+              cardHover: '#1B2438',
+              border: '#232F48',
+              accent: '#6366F1',
+              emerald: '#10B981',
+              cyan: '#06B6D4',
+              gold: '#F59E0B',
+              rose: '#F43F5E',
+              text: '#F1F5F9',
+              muted: '#94A3B8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { background-color: #0B0F17; color: #F1F5F9; font-family: 'Inter', sans-serif; }
+    .glass-panel { background: rgba(21, 28, 44, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5); }
+    .glass-card { background: linear-gradient(135deg, rgba(27, 36, 56, 0.6) 0%, rgba(21, 28, 44, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.06); }
+    .glass-card:hover { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0B0F17; }
+    ::-webkit-scrollbar-thumb { background: #232F48; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #6366F1; }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { opacity: 1; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
+
+  <div id="pdf-report-area">
+
+    <!-- TOP HEADER -->
+    <header class="glass-panel sticky top-0 z-50 border-b border-brand-border px-4 lg:px-8 py-3">
+      <div class="max-w-7xl mx-auto flex flex-col xl:flex-row items-center justify-between gap-3">
+        
+        <div class="flex items-center gap-3 w-full xl:w-auto">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+            <i class="fa-solid fa-tags text-white text-lg"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-bold text-base lg:text-lg text-white tracking-wide">Simulador de Ofertas & Precificação</h1>
+              <span class="bg-amber-500/20 text-amber-300 text-[11px] px-2.5 py-0.5 rounded-full border border-amber-500/30 font-medium">Campanha Comercial</span>
+            </div>
+            <p class="text-xs text-brand-muted" id="syncStatusText">Cálculo sobre custo: Preço de Venda = Custo × (1 + Margem %)</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 w-full xl:w-auto">
+          <!-- CONTROLE DE MARGEM GLOBAL -->
+          <div class="flex items-center gap-1.5 bg-brand-bg/90 border border-amber-500/40 px-2.5 py-1 rounded-lg">
+            <label for="globalMarginInput" class="text-[11px] font-semibold text-amber-400 whitespace-nowrap">
+              <i class="fa-solid fa-percent mr-1"></i>Margem Lote:
+            </label>
+            <input 
+              type="number" 
+              id="globalMarginInput" 
+              value="20" 
+              step="0.5" 
+              class="w-14 bg-transparent text-white font-bold text-xs text-center focus:outline-none border-b border-amber-500/50 focus:border-amber-400"
+            >
+            <span class="text-xs text-amber-400 font-bold">%</span>
+            <button onclick="applyGlobalMargin()" class="ml-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] px-2 py-1 rounded transition shadow">
+              Aplicar
+            </button>
+          </div>
+
+          <!-- BOTÃO PUXAR DO RELATÓRIO COMERCIAL -->
+          <button onclick="carregarDoRelatorioComercial(true)" class="bg-purple-600 hover:bg-purple-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-rotate text-sm"></i>
+            <span>Puxar do Relatório</span>
+          </button>
+
+          <!-- BOTÃO CARREGAR EXCEL -->
+          <label class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold cursor-pointer transition flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-file-excel text-sm"></i> 
+            <span>Carregar Excel</span>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleFileUpload(event)">
+          </label>
+
+          <!-- BOTÃO EXPORTAR EXCEL (.XLSX) -->
+          <button onclick="exportOfertasExcel()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-download text-sm"></i>
+            <span>Exportar (.xlsx)</span>
+          </button>
+
+          <!-- BOTÃO PDF -->
+          <button onclick="generatePDFReport()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 shadow-lg">
+            <i class="fa-solid fa-file-pdf text-sm text-rose-300"></i>
+            <span>PDF</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+      <!-- KPI CARDS -->
+      <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="glass-card rounded-2xl p-5 transition-all">
+          <div class="flex items-center justify-between text-brand-muted mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider">Custo Total do Lote</span>
+            <div class="w-8 h-8 rounded-lg bg-slate-500/10 text-slate-300 flex items-center justify-center">
+              <i class="fa-solid fa-boxes-stacked text-sm"></i>
+            </div>
+          </div>
+          <span class="text-2xl font-extrabold text-white tracking-tight" id="kpi-custo-total">R$ 0,00</span>
+          <p class="text-[11px] text-brand-muted mt-2" id="kpi-itens-count">0 itens selecionados na oferta</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 transition-all border border-emerald-500/30">
+          <div class="flex items-center justify-between text-brand-muted mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Receita Projetada (Oferta)</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              <i class="fa-solid fa-sack-dollar text-sm"></i>
+            </div>
+          </div>
+          <span class="text-2xl font-extrabold text-emerald-400 tracking-tight" id="kpi-receita-total">R$ 0,00</span>
+          <p class="text-[11px] text-brand-muted mt-2">Faturamento total vendendo todo o lote</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 transition-all border border-indigo-500/30">
+          <div class="flex items-center justify-between text-brand-muted mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Lucro Bruto Estimado</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <i class="fa-solid fa-arrow-trend-up text-sm"></i>
+            </div>
+          </div>
+          <span class="text-2xl font-extrabold text-indigo-400 tracking-tight" id="kpi-lucro-total">R$ 0,00</span>
+          <p class="text-[11px] text-brand-muted mt-2">Resultado líquido acima do custo</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-5 transition-all border border-amber-500/30">
+          <div class="flex items-center justify-between text-brand-muted mb-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Margem Média Aplicada</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+              <i class="fa-solid fa-percent text-sm"></i>
+            </div>
+          </div>
+          <span class="text-2xl font-extrabold text-amber-400 tracking-tight" id="kpi-margem-media">0,00%</span>
+          <p class="text-[11px] text-brand-muted mt-2">Média ponderada sobre o custo do lote</p>
+        </div>
+
+      </section>
+
+      <!-- GRÁFICOS DE SIMULAÇÃO -->
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="glass-panel rounded-2xl p-5 lg:col-span-2">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-bold text-white text-sm">Custo Total vs. Receita de Oferta por Grupo (R$)</h3>
+              <p class="text-xs text-brand-muted">Comparativo do capital imobilizado contra o retorno projetado da campanha</p>
+            </div>
+          </div>
+          <div class="relative h-60">
+            <canvas id="groupOfferChart"></canvas>
+          </div>
+        </div>
+
+        <div class="glass-panel rounded-2xl p-5 flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-white text-sm mb-1">Top 5 Maiores Lucros da Oferta</h3>
+            <p class="text-xs text-brand-muted mb-4">Itens que mais geram caixa na campanha</p>
+            <div class="space-y-2.5" id="topProfitList">
+              <p class="text-xs text-brand-muted italic">Puxe os dados do Relatório Comercial ou carregue um Excel.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TABELA INTERATIVA DE PRECIFICAÇÃO -->
+      <section class="glass-panel rounded-2xl p-5">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="font-bold text-white text-base flex items-center gap-2">
+              <i class="fa-solid fa-calculator text-amber-400"></i> Tabela de Simulação e Preços de Oferta
+            </h3>
+            <p class="text-xs text-brand-muted">Edite o <b>% de Margem</b> ou o <b>Preço de Venda</b> diretamente em qualquer linha. O botão "Aplicar" no topo altera todos os itens filtrados.</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            <div class="relative w-full sm:w-44">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted text-xs"></i>
+              <input 
+                type="text" 
+                id="searchInput"
+                placeholder="Filtrar produto..." 
+                oninput="renderOfferTable()"
+                class="w-full pl-8 pr-2.5 py-1.5 text-xs bg-brand-bg/80 border border-brand-border rounded-lg text-white placeholder-brand-muted focus:outline-none focus:border-indigo-500"
+              >
+            </div>
+
+            <select 
+              id="groupFilter" 
+              onchange="renderOfferTable()"
+              class="bg-brand-bg/80 border border-brand-border text-brand-text text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="ALL">Todos os Grupos</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto max-h-[560px]">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="sticky top-0 bg-[#0B0F17] z-10">
+              <tr class="border-b border-brand-border text-brand-muted uppercase font-semibold">
+                <th class="py-3 px-2.5">Código</th>
+                <th class="py-3 px-2.5">Produto</th>
+                <th class="py-3 px-2.5">Grupo</th>
+                <th class="py-3 px-2.5 text-right">Qtd Oferta (kg/un)</th>
+                <th class="py-3 px-2.5 text-right">Custo Unit. (R$)</th>
+                <th class="py-3 px-2.5 text-center text-amber-400">Margem (%)</th>
+                <th class="py-3 px-2.5 text-center text-emerald-400">Preço Oferta (R$)</th>
+                <th class="py-3 px-2.5 text-right">Custo Total (R$)</th>
+                <th class="py-3 px-2.5 text-right">Receita Oferta (R$)</th>
+                <th class="py-3 px-2.5 text-right">Lucro (R$)</th>
+                <th class="py-3 px-2.5 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="offerTableBody" class="divide-y divide-brand-border/40">
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    let offerItems = [
+      {
+        id: 1,
+        codigo: 'EXEMPLO',
+        produto: 'CLIQUE EM "PUXAR DO RELATÓRIO" OU CARREGUE SUA PLANILHA EXCEL ACIMA',
+        grupo: 'GERAL',
+        qtd: 100,
+        custo: 4.55,
+        custoTotalExato: 455.00,
+        margemPct: 20,
+        precoVenda: 5.46
+      }
+    ];
+
+    let groupChartInstance = null;
+
+    const formatBRL = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+    const formatQtd = (val) => new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(val || 0);
+
+    function formatCustoDisplay(val) {
+      const num = Number(val || 0);
+      const rounded4 = Number(num.toFixed(4));
+      const str = String(rounded4);
+      const decimals = (str.includes('.') && str.split('.')[1].length > 2) ? 4 : 2;
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      }).format(rounded4);
+    }
+
+    function parseNumericValue(rawVal) {
+      if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
+      if (rawVal === null || rawVal === undefined) return 0;
+
+      let str = String(rawVal).trim();
+      if (!str) return 0;
+
+      let isNegative = str.includes('-') || (str.startsWith('(') && str.endsWith(')'));
+      str = str.replace(/[R$\s()-]/g, '');
+
+      if (str.includes(',') && str.includes('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else if (str.includes(',')) {
+        str = str.replace(',', '.');
+      }
+
+      const num = parseFloat(str) || 0;
+      return isNegative ? -Math.abs(num) : num;
+    }
+
+    // Integração direta com o Relatório Comercial & Estoque via localStorage
+    function carregarDoRelatorioComercial(showFeedback = false) {
+      const rawPayload = localStorage.getItem('sankhya_simulador_ofertas_payload');
+      if (!rawPayload) {
+        if (showFeedback) {
+          alert('Nenhum dado encontrado do Relatório Comercial.\nAbra o Relatório Comercial & Estoque, carregue suas planilhas e clique em "Enviar para Simulador de Ofertas" na aba Detalhamento Completo.');
+        }
+        return false;
+      }
+
+      try {
+        const payload = JSON.parse(rawPayload);
+        if (!payload.items || payload.items.length === 0) {
+          if (showFeedback) alert('A lista enviada pelo Relatório Comercial está vazia.');
+          return false;
+        }
+
+        const defaultMargin = parseFloat(document.getElementById('globalMarginInput').value) || 20;
+        let nextId = 1;
+
+        offerItems = payload.items.map(item => {
+          const qtd = Number(item.qtd) || 0;
+          const custo = Number(item.custo) || 0;
+          const custoTotalExato = item.custoTotalExato !== undefined ? Number(item.custoTotalExato) : (qtd * custo);
+          const precoVenda = Number((custo * (1 + defaultMargin / 100)).toFixed(2));
+
+          return {
+            id: nextId++,
+            codigo: item.codigo || '',
+            produto: item.produto,
+            grupo: item.grupo || 'GERAL',
+            qtd: qtd,
+            custo: custo,
+            custoTotalExato: custoTotalExato,
+            margemPct: defaultMargin,
+            precoVenda: precoVenda
+          };
+        });
+
+        const dt = payload.updatedAt ? new Date(payload.updatedAt).toLocaleString('pt-BR') : 'agora';
+        document.getElementById('syncStatusText').innerHTML = `<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-link mr-1"></i>Sincronizado com o Relatório Comercial (${offerItems.length} itens • ${dt})</span>`;
+
+        populateGroupFilter();
+        refreshAll();
+        return true;
+      } catch (e) {
+        if (showFeedback) alert('Erro ao ler os dados sincronizados do Relatório Comercial.');
+        return false;
+      }
+    }
+
+    // Também suporta importar o Excel exportado diretamente da aba Detalhamento Completo
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const defaultMargin = parseFloat(document.getElementById('globalMarginInput').value) || 20;
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+      let colCod = -1, colProd = -1, colGrupo = -1, colQtd = -1, colCusto = -1, colValorTotal = -1, colMargem = -1;
+      let headerRowIdx = -1;
+
+      for (let r = 0; r < Math.min(15, rawRows.length); r++) {
+        const row = rawRows[r];
+        if (!row) continue;
+
+        row.forEach((cell, c) => {
+          const val = String(cell || '').toLowerCase().trim();
+
+          if (val.includes('cód') || val.includes('cod')) colCod = c;
+          if (val.includes('descriç') || val.includes('descric') || val === 'produto' || val === 'item') colProd = c;
+          if (val.includes('grupo') || val.includes('categor')) colGrupo = c;
+
+          if (!val.includes('valor') && !val.includes('r$') && !val.includes('vendid')) {
+            if (val === 'qtd disponível' || val === 'qtd disponivel' || val === 'disponível' || val === 'disponivel' || val === 'qtd oferta' || val === 'estoque' || val === 'saldo') {
+              colQtd = c;
+            }
+          }
+
+          if (val.includes('custo') && !val.includes('data') && !val.includes('total')) {
+            colCusto = c;
+          }
+
+          if (val.includes('valor') && (val.includes('estoque') || val.includes('disponível') || val.includes('disponivel') || val.includes('total'))) {
+            colValorTotal = c;
+          }
+
+          if (val.includes('margem') || val.includes('%')) colMargem = c;
+        });
+
+        if (colProd !== -1 && (colCusto !== -1 || colValorTotal !== -1)) {
+          headerRowIdx = r;
+          break;
+        }
+      }
+
+      if (headerRowIdx === -1) headerRowIdx = 0;
+      if (colProd === -1) colProd = 1;
+      if (colCusto === -1 && colValorTotal === -1) colCusto = 2;
+
+      const dataRows = rawRows.slice(headerRowIdx + 1);
+      const parsedItems = [];
+      let nextId = 1;
+
+      dataRows.forEach(row => {
+        if (!row || row.length < 2) return;
+
+        const nome = String(row[colProd] || '').trim();
+        const lowerNome = nome.toLowerCase();
+        if (!nome || lowerNome === 'produto' || lowerNome === 'descrição' || lowerNome.includes('total')) return;
+
+        const cod = colCod !== -1 ? String(row[colCod] || '').trim() : '';
+        const grupo = colGrupo !== -1 && row[colGrupo] ? String(row[colGrupo]).trim().toUpperCase() : 'GERAL';
+        const qtd = colQtd !== -1 ? parseNumericValue(row[colQtd]) : 1;
+
+        if (qtd <= 0) return;
+        
+        let custo = colCusto !== -1 ? parseNumericValue(row[colCusto]) : 0;
+        const valTotalPlanilha = colValorTotal !== -1 ? parseNumericValue(row[colValorTotal]) : 0;
+
+        let custoTotalExato = null;
+        if (valTotalPlanilha > 0 && qtd > 0) {
+          custoTotalExato = valTotalPlanilha;
+          if (custo <= 0) {
+            custo = valTotalPlanilha / qtd;
+          }
+        } else {
+          custoTotalExato = qtd * custo;
+        }
+
+        const margem = (colMargem !== -1 && row[colMargem] !== undefined && row[colMargem] !== '')
+          ? parseNumericValue(row[colMargem])
+          : defaultMargin;
+
+        const precoVenda = Number((custo * (1 + margem / 100)).toFixed(2));
+
+        parsedItems.push({
+          id: nextId++,
+          codigo: cod,
+          produto: nome,
+          grupo: grupo,
+          qtd: qtd,
+          custo: custo,
+          custoTotalExato: custoTotalExato,
+          margemPct: margem,
+          precoVenda: precoVenda
+        });
+      });
+
+      if (parsedItems.length === 0) {
+        alert("Nenhum item com Qtd Disponível maior que zero foi encontrado na planilha.");
+        return;
+      }
+
+      offerItems = parsedItems;
+      document.getElementById('syncStatusText').innerText = `Planilha Excel importada (${offerItems.length} itens)`;
+      populateGroupFilter();
+      refreshAll();
+    }
+
+    function populateGroupFilter() {
+      const select = document.getElementById('groupFilter');
+      const groups = [...new Set(offerItems.map(i => i.grupo))].sort();
+      select.innerHTML = '<option value="ALL">Todos os Grupos</option>';
+      groups.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g;
+        opt.textContent = g;
+        select.appendChild(opt);
+      });
+    }
+
+    function getFilteredItems() {
+      const term = (document.getElementById('searchInput').value || '').toLowerCase();
+      const group = document.getElementById('groupFilter').value;
+
+      return offerItems.filter(item => {
+        const matchGroup = group === 'ALL' || item.grupo === group;
+        const matchSearch = !term || item.produto.toLowerCase().includes(term) || String(item.codigo).toLowerCase().includes(term) || item.grupo.toLowerCase().includes(term);
+        return matchGroup && matchSearch;
+      });
+    }
+
+    function applyGlobalMargin() {
+      const newMargin = parseFloat(document.getElementById('globalMarginInput').value);
+      if (isNaN(newMargin)) return;
+
+      const filteredIds = new Set(getFilteredItems().map(i => i.id));
+      offerItems.forEach(item => {
+        if (filteredIds.has(item.id)) {
+          item.margemPct = newMargin;
+          item.precoVenda = Number((item.custo * (1 + newMargin / 100)).toFixed(2));
+        }
+      });
+
+      refreshAll();
+    }
+
+    function updateItemMargin(id, rawMargin) {
+      const item = offerItems.find(i => i.id === id);
+      if (!item) return;
+
+      const margin = parseFloat(rawMargin) || 0;
+      item.margemPct = margin;
+      item.precoVenda = Number((item.custo * (1 + margin / 100)).toFixed(2));
+
+      updateRowDOM(item);
+      updateKPIsAndCharts();
+    }
+
+    function updateItemPrice(id, rawPrice) {
+      const item = offerItems.find(i => i.id === id);
+      if (!item) return;
+
+      const price = parseFloat(rawPrice) || 0;
+      item.precoVenda = price;
+      item.margemPct = item.custo > 0 ? Number((((price / item.custo) - 1) * 100).toFixed(2)) : 0;
+
+      updateRowDOM(item);
+      updateKPIsAndCharts();
+    }
+
+    function removeItem(id) {
+      offerItems = offerItems.filter(i => i.id !== id);
+      refreshAll();
+    }
+
+    function getItemCustoTotal(item) {
+      return item.custoTotalExato !== null && item.custoTotalExato !== undefined
+        ? item.custoTotalExato
+        : (item.qtd * item.custo);
+    }
+
+    function updateRowDOM(item) {
+      const row = document.getElementById(`row-${item.id}`);
+      if (!row) return;
+
+      const marginInput = row.querySelector('.input-margin');
+      const priceInput = row.querySelector('.input-price');
+      if (document.activeElement !== marginInput) marginInput.value = item.margemPct;
+      if (document.activeElement !== priceInput) priceInput.value = item.precoVenda.toFixed(2);
+
+      const custoTotal = getItemCustoTotal(item);
+      const receitaTotal = item.qtd * item.precoVenda;
+      const lucroTotal = receitaTotal - custoTotal;
+
+      row.querySelector('.cell-custo-total').innerText = formatBRL(custoTotal);
+      row.querySelector('.cell-receita-total').innerText = formatBRL(receitaTotal);
+      const lucroCell = row.querySelector('.cell-lucro-total');
+      lucroCell.innerText = formatBRL(lucroTotal);
+      lucroCell.className = `py-2.5 px-2.5 text-right font-bold cell-lucro-total ${lucroTotal < 0 ? 'text-rose-400' : 'text-indigo-400'}`;
+    }
+
+    function renderOfferTable() {
+      const tbody = document.getElementById('offerTableBody');
+      const list = getFilteredItems();
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o filtro selecionado.</td></tr>';
+        updateKPIsAndCharts();
+        return;
+      }
+
+      tbody.innerHTML = list.map(item => {
+        const custoTotal = getItemCustoTotal(item);
+        const receitaTotal = item.qtd * item.precoVenda;
+        const lucroTotal = receitaTotal - custoTotal;
+
+        return `
+          <tr id="row-${item.id}" class="hover:bg-brand-cardHover/60 transition">
+            <td class="py-2.5 px-2.5 font-mono text-brand-muted">${item.codigo || '-'}</td>
+            <td class="py-2.5 px-2.5 font-semibold text-white max-w-[260px]">${item.produto}</td>
+            <td class="py-2.5 px-2.5"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${item.grupo}</span></td>
+            <td class="py-2.5 px-2.5 text-right font-bold text-white font-mono">${formatQtd(item.qtd)}</td>
+            <td class="py-2.5 px-2.5 text-right font-mono text-cyan-400">${formatCustoDisplay(item.custo)}</td>
+            <td class="py-2.5 px-2.5 text-center">
+              <div class="inline-flex items-center bg-amber-500/10 border border-amber-500/40 rounded px-1.5 py-0.5">
+                <input type="number" step="0.5" value="${item.margemPct}" onchange="updateItemMargin(${item.id}, this.value)" oninput="updateItemMargin(${item.id}, this.value)" class="input-margin w-14 bg-transparent text-amber-300 font-bold text-right focus:outline-none">
+                <span class="text-amber-400 font-bold ml-0.5">%</span>
+              </div>
+            </td>
+            <td class="py-2.5 px-2.5 text-center">
+              <div class="inline-flex items-center bg-emerald-500/10 border border-emerald-500/40 rounded px-1.5 py-0.5">
+                <span class="text-emerald-400 font-bold mr-1">R$</span>
+                <input type="number" step="0.01" value="${item.precoVenda.toFixed(2)}" onchange="updateItemPrice(${item.id}, this.value)" oninput="updateItemPrice(${item.id}, this.value)" class="input-price w-20 bg-transparent text-emerald-300 font-extrabold text-right focus:outline-none">
+              </div>
+            </td>
+            <td class="py-2.5 px-2.5 text-right font-mono text-brand-muted cell-custo-total">${formatBRL(custoTotal)}</td>
+            <td class="py-2.5 px-2.5 text-right font-bold text-emerald-400 cell-receita-total">${formatBRL(receitaTotal)}</td>
+            <td class="py-2.5 px-2.5 text-right font-bold ${lucroTotal < 0 ? 'text-rose-400' : 'text-indigo-400'} cell-lucro-total">${formatBRL(lucroTotal)}</td>
+            <td class="py-2.5 px-2.5 text-center">
+              <button onclick="removeItem(${item.id})" title="Remover da oferta" class="text-brand-muted hover:text-rose-400 transition p-1">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      updateKPIsAndCharts();
+    }
+
+    function updateKPIsAndCharts() {
+      const list = getFilteredItems();
+
+      let custoTotalLote = 0;
+      let receitaTotalLote = 0;
+
+      const groupMap = {};
+
+      list.forEach(item => {
+        const cTot = getItemCustoTotal(item);
+        const rTot = item.qtd * item.precoVenda;
+        custoTotalLote += cTot;
+        receitaTotalLote += rTot;
+
+        if (!groupMap[item.grupo]) {
+          groupMap[item.grupo] = { name: item.grupo, custo: 0, receita: 0 };
+        }
+        groupMap[item.grupo].custo += cTot;
+        groupMap[item.grupo].receita += rTot;
+      });
+
+      const lucroTotalLote = receitaTotalLote - custoTotalLote;
+      const margemMedia = custoTotalLote > 0 ? ((receitaTotalLote / custoTotalLote) - 1) * 100 : 0;
+
+      document.getElementById('kpi-custo-total').innerText = formatBRL(custoTotalLote);
+      document.getElementById('kpi-itens-count').innerText = `${list.length} itens na campanha`;
+      document.getElementById('kpi-receita-total').innerText = formatBRL(receitaTotalLote);
+      document.getElementById('kpi-lucro-total').innerText = formatBRL(lucroTotalLote);
+      document.getElementById('kpi-margem-media').innerText = `${margemMedia.toFixed(2).replace('.', ',')}%`;
+
+      const top5 = [...list]
+        .map(i => ({ ...i, lucro: (i.qtd * i.precoVenda) - getItemCustoTotal(i) }))
+        .sort((a, b) => b.lucro - a.lucro)
+        .slice(0, 5);
+
+      const topContainer = document.getElementById('topProfitList');
+      if (top5.length === 0) {
+        topContainer.innerHTML = '<p class="text-xs text-brand-muted">Nenhum item na lista.</p>';
+      } else {
+        topContainer.innerHTML = top5.map((p, idx) => `
+          <div class="flex items-center justify-between p-2 rounded-lg bg-brand-bg/50 border border-brand-border/50">
+            <div class="flex items-center gap-2 overflow-hidden">
+              <span class="w-5 h-5 rounded bg-indigo-500/20 text-indigo-400 text-[11px] font-bold flex items-center justify-center shrink-0">${idx + 1}</span>
+              <div class="truncate">
+                <p class="font-semibold text-white text-xs truncate">${p.produto}</p>
+                <p class="text-[10px] text-brand-muted">Oferta: ${formatBRL(p.precoVenda)} (+${p.margemPct}%)</p>
+              </div>
+            </div>
+            <span class="font-bold text-emerald-400 text-xs ml-2 whitespace-nowrap">+${formatBRL(p.lucro)}</span>
+          </div>
+        `).join('');
+      }
+
+      const groupsArr = Object.values(groupMap).sort((a, b) => b.receita - a.receita).slice(0, 8);
+      Chart.defaults.font.family = 'Inter';
+      Chart.defaults.color = '#94A3B8';
+
+      if (groupChartInstance) groupChartInstance.destroy();
+      groupChartInstance = new Chart(document.getElementById('groupOfferChart'), {
+        type: 'bar',
+        data: {
+          labels: groupsArr.map(g => g.name),
+          datasets: [
+            { label: 'Custo do Lote (R$)', data: groupsArr.map(g => g.custo), backgroundColor: '#64748B', borderRadius: 6 },
+            { label: 'Receita Oferta (R$)', data: groupsArr.map(g => g.receita), backgroundColor: '#10B981', borderRadius: 6 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: { ticks: { callback: (v) => 'R$ ' + v.toLocaleString('pt-BR') } }
+          }
+        }
+      });
+    }
+
+    function refreshAll() {
+      renderOfferTable();
+    }
+
+    function exportOfertasExcel() {
+      const list = getFilteredItems();
+      if (list.length === 0) {
+        alert("Não há itens para exportar.");
+        return;
+      }
+
+      const rows = list.map(item => {
+        const custoTot = getItemCustoTotal(item);
+        const receitaTot = item.qtd * item.precoVenda;
+        const lucroTot = receitaTot - custoTot;
+
+        return {
+          'Código': item.codigo || '',
+          'Produto': item.produto,
+          'Grupo': item.grupo,
+          'Qtd Oferta': Number(item.qtd.toFixed(2)),
+          'Custo Unitário (R$)': Number(item.custo.toFixed(4)),
+          'Margem Aplicada (%)': Number(item.margemPct.toFixed(2)),
+          'Preço de Oferta (R$)': Number(item.precoVenda.toFixed(2)),
+          'Custo Total Lote (R$)': Number(custoTot.toFixed(2)),
+          'Receita Total Oferta (R$)': Number(receitaTot.toFixed(2)),
+          'Lucro Bruto Estimado (R$)': Number(lucroTot.toFixed(2))
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 12 }, { wch: 45 }, { wch: 22 }, { wch: 14 },
+        { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 20 },
+        { wch: 22 }, { wch: 22 }
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Tabela_Ofertas');
+      XLSX.writeFile(wb, 'Campanha_Itens_Em_Oferta.xlsx');
+    }
+
+    function generatePDFReport() {
+      const element = document.getElementById('pdf-report-area');
+      const opt = {
+        margin:       0.3,
+        filename:     'Campanha_Ofertas_Comercial.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0B0F17' },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+      };
+      html2pdf().set(opt).from(element).save();
+    }
+
+    // Atualiza automaticamente se você clicar em "Enviar para Simulador" em outra aba aberta
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'sankhya_simulador_ofertas_payload') {
+        carregarDoRelatorioComercial(false);
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const loaded = carregarDoRelatorioComercial(false);
+      if (!loaded) {
+        populateGroupFilter();
+        refreshAll();
+      }
+    });
+  </script>
+</body>
+</html>
