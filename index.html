@@ -241,6 +241,7 @@
                 <th class="py-3 px-2.5">Produto</th>
                 <th class="py-3 px-2.5">Grupo</th>
                 <th class="py-3 px-2.5 text-right">Qtd Oferta (kg/un)</th>
+                <th class="py-3 px-2.5 text-right">Cobertura (Dias)</th>
                 <th class="py-3 px-2.5 text-right">Custo Unit. (R$)</th>
                 <th class="py-3 px-2.5 text-center text-amber-400">Margem (%)</th>
                 <th class="py-3 px-2.5 text-center text-emerald-400">Preço Oferta (R$)</th>
@@ -267,8 +268,8 @@
         produto: 'CLIQUE EM "PUXAR DO RELATÓRIO" OU CARREGUE SUA PLANILHA EXCEL ACIMA',
         grupo: 'GERAL',
         qtd: 100,
+        diasCobertura: 30,
         custo: 4.55,
-        custoTotalExato: 455.00,
         margemPct: 20,
         precoVenda: 5.46
       }
@@ -292,6 +293,22 @@
       }).format(rounded4);
     }
 
+    function formatCoberturaBadge(dias) {
+      if (dias === null || dias === undefined || dias === '') return '<span class="text-brand-muted">-</span>';
+      if (dias === 999 || String(dias).toLowerCase() === 'sem giro') {
+        return '<span class="text-rose-400 font-bold">Sem Giro</span>';
+      }
+      const num = Number(dias) || 0;
+      const colorClass = num > 90 ? 'text-rose-400' : (num > 30 ? 'text-amber-400' : 'text-emerald-400');
+      return `<span class="${colorClass} font-bold">${num} dias</span>`;
+    }
+
+    function formatCoberturaTexto(dias) {
+      if (dias === null || dias === undefined || dias === '') return '-';
+      if (dias === 999 || String(dias).toLowerCase() === 'sem giro') return 'Sem Giro';
+      return `${Number(dias) || 0} dias`;
+    }
+
     function parseNumericValue(rawVal) {
       if (typeof rawVal === 'number') return isNaN(rawVal) ? 0 : rawVal;
       if (rawVal === null || rawVal === undefined) return 0;
@@ -312,7 +329,6 @@
       return isNegative ? -Math.abs(num) : num;
     }
 
-    // Integração direta com o Relatório Comercial & Estoque via localStorage
     function carregarDoRelatorioComercial(showFeedback = false) {
       const rawPayload = localStorage.getItem('sankhya_simulador_ofertas_payload');
       if (!rawPayload) {
@@ -335,7 +351,6 @@
         offerItems = payload.items.map(item => {
           const qtd = Number(item.qtd) || 0;
           const custo = Number(item.custo) || 0;
-          const custoTotalExato = item.custoTotalExato !== undefined ? Number(item.custoTotalExato) : (qtd * custo);
           const precoVenda = Number((custo * (1 + defaultMargin / 100)).toFixed(2));
 
           return {
@@ -344,8 +359,8 @@
             produto: item.produto,
             grupo: item.grupo || 'GERAL',
             qtd: qtd,
+            diasCobertura: item.diasCobertura !== undefined ? item.diasCobertura : null,
             custo: custo,
-            custoTotalExato: custoTotalExato,
             margemPct: defaultMargin,
             precoVenda: precoVenda
           };
@@ -363,7 +378,6 @@
       }
     }
 
-    // Também suporta importar o Excel exportado diretamente da aba Detalhamento Completo
     async function handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -375,7 +389,7 @@
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-      let colCod = -1, colProd = -1, colGrupo = -1, colQtd = -1, colCusto = -1, colValorTotal = -1, colMargem = -1;
+      let colCod = -1, colProd = -1, colGrupo = -1, colQtd = -1, colCusto = -1, colValorTotal = -1, colMargem = -1, colCobertura = -1;
       let headerRowIdx = -1;
 
       for (let r = 0; r < Math.min(15, rawRows.length); r++) {
@@ -388,6 +402,7 @@
           if (val.includes('cód') || val.includes('cod')) colCod = c;
           if (val.includes('descriç') || val.includes('descric') || val === 'produto' || val === 'item') colProd = c;
           if (val.includes('grupo') || val.includes('categor')) colGrupo = c;
+          if (val.includes('cobertura')) colCobertura = c;
 
           if (!val.includes('valor') && !val.includes('r$') && !val.includes('vendid')) {
             if (val === 'qtd disponível' || val === 'qtd disponivel' || val === 'disponível' || val === 'disponivel' || val === 'qtd oferta' || val === 'estoque' || val === 'saldo') {
@@ -436,14 +451,14 @@
         let custo = colCusto !== -1 ? parseNumericValue(row[colCusto]) : 0;
         const valTotalPlanilha = colValorTotal !== -1 ? parseNumericValue(row[colValorTotal]) : 0;
 
-        let custoTotalExato = null;
-        if (valTotalPlanilha > 0 && qtd > 0) {
-          custoTotalExato = valTotalPlanilha;
-          if (custo <= 0) {
-            custo = valTotalPlanilha / qtd;
-          }
-        } else {
-          custoTotalExato = qtd * custo;
+        if (custo <= 0 && valTotalPlanilha > 0 && qtd > 0) {
+          custo = valTotalPlanilha / qtd;
+        }
+
+        let diasCobertura = null;
+        if (colCobertura !== -1 && row[colCobertura] !== undefined && row[colCobertura] !== '') {
+          const rawCob = String(row[colCobertura]).trim();
+          diasCobertura = rawCob.toLowerCase().includes('sem giro') ? 999 : parseNumericValue(rawCob);
         }
 
         const margem = (colMargem !== -1 && row[colMargem] !== undefined && row[colMargem] !== '')
@@ -458,8 +473,8 @@
           produto: nome,
           grupo: grupo,
           qtd: qtd,
+          diasCobertura: diasCobertura,
           custo: custo,
-          custoTotalExato: custoTotalExato,
           margemPct: margem,
           precoVenda: precoVenda
         });
@@ -544,9 +559,7 @@
     }
 
     function getItemCustoTotal(item) {
-      return item.custoTotalExato !== null && item.custoTotalExato !== undefined
-        ? item.custoTotalExato
-        : (item.qtd * item.custo);
+      return (item.qtd || 0) * (item.custo || 0);
     }
 
     function updateRowDOM(item) {
@@ -574,7 +587,7 @@
       const list = getFilteredItems();
 
       if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o filtro selecionado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="12" class="text-center py-8 text-brand-muted">Nenhum produto encontrado para o filtro selecionado.</td></tr>';
         updateKPIsAndCharts();
         return;
       }
@@ -587,9 +600,10 @@
         return `
           <tr id="row-${item.id}" class="hover:bg-brand-cardHover/60 transition">
             <td class="py-2.5 px-2.5 font-mono text-brand-muted">${item.codigo || '-'}</td>
-            <td class="py-2.5 px-2.5 font-semibold text-white max-w-[260px]">${item.produto}</td>
+            <td class="py-2.5 px-2.5 font-semibold text-white max-w-[240px]">${item.produto}</td>
             <td class="py-2.5 px-2.5"><span class="bg-indigo-500/10 text-indigo-300 px-2 py-0.5 rounded text-[10px]">${item.grupo}</span></td>
             <td class="py-2.5 px-2.5 text-right font-bold text-white font-mono">${formatQtd(item.qtd)}</td>
+            <td class="py-2.5 px-2.5 text-right whitespace-nowrap">${formatCoberturaBadge(item.diasCobertura)}</td>
             <td class="py-2.5 px-2.5 text-right font-mono text-cyan-400">${formatCustoDisplay(item.custo)}</td>
             <td class="py-2.5 px-2.5 text-center">
               <div class="inline-flex items-center bg-amber-500/10 border border-amber-500/40 rounded px-1.5 py-0.5">
@@ -716,6 +730,7 @@
           'Produto': item.produto,
           'Grupo': item.grupo,
           'Qtd Oferta': Number(item.qtd.toFixed(2)),
+          'Cobertura (Dias)': formatCoberturaTexto(item.diasCobertura),
           'Custo Unitário (R$)': Number(item.custo.toFixed(4)),
           'Margem Aplicada (%)': Number(item.margemPct.toFixed(2)),
           'Preço de Oferta (R$)': Number(item.precoVenda.toFixed(2)),
@@ -728,8 +743,8 @@
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [
         { wch: 12 }, { wch: 45 }, { wch: 22 }, { wch: 14 },
-        { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 20 },
-        { wch: 22 }, { wch: 22 }
+        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 20 },
+        { wch: 20 }, { wch: 22 }, { wch: 22 }
       ];
 
       const wb = XLSX.utils.book_new();
@@ -749,7 +764,6 @@
       html2pdf().set(opt).from(element).save();
     }
 
-    // Atualiza automaticamente se você clicar em "Enviar para Simulador" em outra aba aberta
     window.addEventListener('storage', (e) => {
       if (e.key === 'sankhya_simulador_ofertas_payload') {
         carregarDoRelatorioComercial(false);
