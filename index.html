@@ -145,7 +145,8 @@
 
     function parseTextoImportacaoSankhya(texto) {
       const linhas = String(texto || "")
-        .split(/?
+        .split(/
+?
 /)
         .map((l) => l.trim())
         .filter(Boolean);
