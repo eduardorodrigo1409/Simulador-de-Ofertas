@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Editor de Texto — Quebra de Linhas</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 780px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #1f2937;
+      background: #f9fafb;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; }
+    p.sub { color: #6b7280; margin-top: 0; font-size: 0.95rem; }
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #ffffff;
+      resize: vertical;
+    }
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #1d4ed8; }
+    .meta { font-size: 0.85rem; color: #4b5563; }
+    ul.lines {
+      margin-top: 16px;
+      padding-left: 20px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px 14px 14px 32px;
+    }
+    ul.lines li { margin-bottom: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <h1>Processador de Linhas</h1>
+  <p class="sub">Digite ou cole um texto abaixo para dividir por quebra de linha (<code>\r?\n</code>).</p>
+
+  <textarea id="inputText" placeholder="Linha 1&#10;Linha 2&#10;Linha 3"></textarea>
+
+  <div class="actions">
+    <button type="button" id="processBtn">Processar linhas</button>
+    <span class="meta" id="lineCount">0 linhas</span>
+  </div>
+
+  <ul class="lines" id="outputList"></ul>
+
+  <script>
+    const inputEl = document.getElementById('inputText');
+    const outputEl = document.getElementById('outputList');
+    const countEl = document.getElementById('lineCount');
+    const btnEl = document.getElementById('processBtn');
+
+    function renderLines() {
+      const lines = inputEl.value.split(/\r?\n/);
+      countEl.textContent = `${lines.length} ${lines.length === 1 ? 'linha' : 'linhas'}`;
+      outputEl.innerHTML = lines
+        .map((line, idx) => `<li><strong>${idx + 1}:</strong> ${escapeHtml(line)}</li>`)
+        .join('');
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    btnEl.addEventListener('click', renderLines);
+    inputEl.addEventListener('input', renderLines);
+    renderLines();
+  </script>
+</body>
+</html>
