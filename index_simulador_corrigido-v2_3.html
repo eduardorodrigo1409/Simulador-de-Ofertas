@@ -1,0 +1,4973 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador de Ofertas — Gestão de Campanhas e Saída</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-[#070b14] text-slate-100 antialiased">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef, useState } = React;
+
+    const STORAGE_KEY = "promocoes_gestao_campanhas_v3";
+    const SALES_LOG_KEY = "promocoes_vendas_simulador_v3";
+    const CATALOG_STORAGE_KEY = "promocoes_catalogo_sankhya_v3";
+    const BRIDGE_PAYLOAD_KEY = "simulador_ofertas_itens_queima_v1";
+    const ALL_STOCK_PAYLOAD_KEY = "simulador_ofertas_todos_itens_estoque_v1";
+    const SYNC_URL_STORAGE_KEY = "simulador_ofertas_sync_url_v1";
+    const CATALOGO_SANKHYA_INICIAL = {
+        "481": {
+          "codigo": "481",
+          "descricao": "COLUNA 8.0MM (7X14)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 478.0,
+          "custoUnit": 49.36
+        },
+        "477": {
+          "codigo": "477",
+          "descricao": "COLUNA 10.0MM (7X14)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": -54.0,
+          "custoUnit": 73.72
+        },
+        "1924": {
+          "codigo": "1924",
+          "descricao": "VERGALHAO CA-50 10.0MM 3/8 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 13942.7,
+          "custoUnit": 4.55
+        },
+        "479": {
+          "codigo": "479",
+          "descricao": "COLUNA 10.0MM (7X20)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 94.0,
+          "custoUnit": 75.4
+        },
+        "480": {
+          "codigo": "480",
+          "descricao": "COLUNA 10.00MM (7X27)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 69.0,
+          "custoUnit": 75.68
+        },
+        "1699": {
+          "codigo": "1699",
+          "descricao": "TRELICA 8SL (6,0 X 3,4 X 4,2) 6M",
+          "grupo": "TRELICAS",
+          "estoqueDisp": 82.0,
+          "custoUnit": 21.62
+        },
+        "1927": {
+          "codigo": "1927",
+          "descricao": "VERGALHAO CA-50 12.50MM 1/2 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 26876.0,
+          "custoUnit": 4.61
+        },
+        "1941": {
+          "codigo": "1941",
+          "descricao": "VERGALHAO CA-50 8.00MM 5/16 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 12288.0,
+          "custoUnit": 4.71
+        },
+        "1601": {
+          "codigo": "1601",
+          "descricao": "TELA CONCRETO 5.0MM - Q196 - 10X10 - 2.45X6M",
+          "grupo": "TELAS",
+          "estoqueDisp": 138.0,
+          "custoUnit": 195.6
+        },
+        "1606": {
+          "codigo": "1606",
+          "descricao": "TELA CONCRETO 3.4MM - Q61 - 15X15 - 2.45X6M",
+          "grupo": "TELAS",
+          "estoqueDisp": 222.0,
+          "custoUnit": 62.56
+        },
+        "1695": {
+          "codigo": "1695",
+          "descricao": "TRELICA 8L (6,0 X 4,2 X 4,2) 6M",
+          "grupo": "TRELICAS",
+          "estoqueDisp": 1062.0,
+          "custoUnit": 25.22
+        },
+        "1599": {
+          "codigo": "1599",
+          "descricao": "TELA CONCRETO 4.2MM - Q138 - 10X10 - 2.45X6M",
+          "grupo": "TELAS",
+          "estoqueDisp": 177.0,
+          "custoUnit": 155.7
+        },
+        "1950": {
+          "codigo": "1950",
+          "descricao": "VERGALHAO CA-60 5.0MM RETO (12M)",
+          "grupo": "VERGALHAO CA 60",
+          "estoqueDisp": 733.24,
+          "custoUnit": 4.62
+        },
+        "1697": {
+          "codigo": "1697",
+          "descricao": "TRELICA 8LL (6,0 X 3,8 X 4,2) 6M",
+          "grupo": "TRELICAS",
+          "estoqueDisp": 768.0,
+          "custoUnit": 23.1
+        },
+        "1608": {
+          "codigo": "1608",
+          "descricao": "TELA CONCRETO 4.2MM - Q92 - 15X15 - 2.45X6M",
+          "grupo": "TELAS",
+          "estoqueDisp": 293.0,
+          "custoUnit": 106.46
+        },
+        "380": {
+          "codigo": "380",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 1,00M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 28.43,
+          "custoUnit": 7.93
+        },
+        "2337": {
+          "codigo": "2337",
+          "descricao": "TELHA GALVALUME TRAP 0,47MM 6,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 99.0,
+          "custoUnit": 180.0
+        },
+        "2188": {
+          "codigo": "2188",
+          "descricao": "TELHA GALVALUME TRAP 0,35MM 6,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 2.0,
+          "custoUnit": 174.0
+        },
+        "1938": {
+          "codigo": "1938",
+          "descricao": "VERGALHAO CA-50 6.30MM 1/4 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 5457.0,
+          "custoUnit": 4.87
+        },
+        "1701": {
+          "codigo": "1701",
+          "descricao": "TRELICA 8SL-E (5,0 X 3,4 X 3,4) 6M",
+          "grupo": "TRELICAS",
+          "estoqueDisp": -232.0,
+          "custoUnit": 16.9
+        },
+        "482": {
+          "codigo": "482",
+          "descricao": "COLUNA 8.0MM (7X20)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 470.0,
+          "custoUnit": 51.24
+        },
+        "1930": {
+          "codigo": "1930",
+          "descricao": "VERGALHAO CA-50 16.00MM 5/8 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 12694.5,
+          "custoUnit": 4.55
+        },
+        "1495": {
+          "codigo": "1495",
+          "descricao": "SAPATA PRONTA 10.0MM 60X60 MALHA (15X15)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 173.0,
+          "custoUnit": 17.84
+        },
+        "127": {
+          "codigo": "127",
+          "descricao": "BARRA REDONDA LAM A36 5/8",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 7.0,
+          "custoUnit": 6.02
+        },
+        "362": {
+          "codigo": "362",
+          "descricao": "CHAPA GALVANIZADA 26 2,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 676.5,
+          "custoUnit": 7.32
+        },
+        "42": {
+          "codigo": "42",
+          "descricao": "ARAME RECOZIDO 18 ROLO GR",
+          "grupo": "ARAME RECOZIDO",
+          "estoqueDisp": 1050.0,
+          "custoUnit": 6.44
+        },
+        "361": {
+          "codigo": "361",
+          "descricao": "CHAPA GALVANIZADA 24 2,00X1.20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 7.28
+        },
+        "1341": {
+          "codigo": "1341",
+          "descricao": "PERFIL U ENRIJECIDO 4 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 89.07,
+          "custoUnit": 6.82
+        },
+        "1934": {
+          "codigo": "1934",
+          "descricao": "VERGALHAO CA-50 25.00MM 1\" RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 4529.0,
+          "custoUnit": 5.73
+        },
+        "1183": {
+          "codigo": "1183",
+          "descricao": "METALON GALV 40 X 20 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 812.45,
+          "custoUnit": 8.2
+        },
+        "2226": {
+          "codigo": "2226",
+          "descricao": "TELHA GALVALUME TRAP 0,43MM 3,50X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 29.0,
+          "custoUnit": 106.3
+        },
+        "1155": {
+          "codigo": "1155",
+          "descricao": "METALON GALV 20 X 20 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 5419.05,
+          "custoUnit": 8.66
+        },
+        "45": {
+          "codigo": "45",
+          "descricao": "BARRA CHATA A36 1 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 89.0,
+          "custoUnit": 5.93
+        },
+        "1177": {
+          "codigo": "1177",
+          "descricao": "METALON GALV 30 X 50 X 16 (1.55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 142.0,
+          "custoUnit": 7.45
+        },
+        "1814": {
+          "codigo": "1814",
+          "descricao": "TUBO INDUSTRIAL GALV. 2\" (1.55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 852.48,
+          "custoUnit": 7.83
+        },
+        "1385": {
+          "codigo": "1385",
+          "descricao": "PERFIL U SIMPLES 150X50X3,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 6.65
+        },
+        "2225": {
+          "codigo": "2225",
+          "descricao": "TELHA GALVALUME TRAP 0,43MM 5,50X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 14.0,
+          "custoUnit": 167.04
+        },
+        "1406": {
+          "codigo": "1406",
+          "descricao": "PERFIL U SIMPLES 4 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 7301.7,
+          "custoUnit": 6.65
+        },
+        "1145": {
+          "codigo": "1145",
+          "descricao": "METALON GALV 15 X 15 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 783.8,
+          "custoUnit": 7.45
+        },
+        "1184": {
+          "codigo": "1184",
+          "descricao": "METALON GALV 40 X 30 1.25",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1161.88,
+          "custoUnit": 7.82
+        },
+        "1335": {
+          "codigo": "1335",
+          "descricao": "PERFIL U ENRIJECIDO 3 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1034.0,
+          "custoUnit": 5.94
+        },
+        "1167": {
+          "codigo": "1167",
+          "descricao": "METALON GALV 30 X 20 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2451.96,
+          "custoUnit": 7.82
+        },
+        "1994": {
+          "codigo": "1994",
+          "descricao": "BOBINA CA-60 - 5,0mm",
+          "grupo": "BOBINA CA 60",
+          "estoqueDisp": 944.0,
+          "custoUnit": 4.62
+        },
+        "1409": {
+          "codigo": "1409",
+          "descricao": "PERFIL U SIMPLES 4 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 5248.75,
+          "custoUnit": 5.52
+        },
+        "2124": {
+          "codigo": "2124",
+          "descricao": "COLUNA 6.00MM (7X14)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 384.0,
+          "custoUnit": 29.04
+        },
+        "1802": {
+          "codigo": "1802",
+          "descricao": "TUBO INDUSTRIAL GALV. 1.1/2\" (1,95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 795.7,
+          "custoUnit": 8.19
+        },
+        "1196": {
+          "codigo": "1196",
+          "descricao": "METALON GALV 50 X 50 X 14 (1.95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 800.32,
+          "custoUnit": 7.45
+        },
+        "46": {
+          "codigo": "46",
+          "descricao": "BARRA CHATA A36 1 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 4360.4,
+          "custoUnit": 6.02
+        },
+        "1493": {
+          "codigo": "1493",
+          "descricao": "SAPATA PRONTA 10.0MM 50X50 MALHA (10X10)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 105.0,
+          "custoUnit": 16.0
+        },
+        "378": {
+          "codigo": "378",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 0,70M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 2535.55,
+          "custoUnit": 7.4
+        },
+        "1402": {
+          "codigo": "1402",
+          "descricao": "PERFIL U SIMPLES 3 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 9883.16,
+          "custoUnit": 5.52
+        },
+        "234": {
+          "codigo": "234",
+          "descricao": "CANTONEIRA L A36 1.1/4X1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 1639.4,
+          "custoUnit": 6.44
+        },
+        "1800": {
+          "codigo": "1800",
+          "descricao": "TUBO INDUSTRIAL GALV. 1.1/2\" (1,25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1800.48,
+          "custoUnit": 8.19
+        },
+        "2207": {
+          "codigo": "2207",
+          "descricao": "CHAPA PRETA 14 3,00 X 1,00",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 6.58
+        },
+        "377": {
+          "codigo": "377",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 0,60M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 2733.72,
+          "custoUnit": 7.4
+        },
+        "1425": {
+          "codigo": "1425",
+          "descricao": "PREGO 2.1/2X10 (18X27)",
+          "grupo": "PREGOS",
+          "estoqueDisp": 1356.0,
+          "custoUnit": 8.99
+        },
+        "2327": {
+          "codigo": "2327",
+          "descricao": "METALON GALV PRE PINTADO 30 X 50 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1539.0,
+          "custoUnit": 7.82
+        },
+        "262": {
+          "codigo": "262",
+          "descricao": "CANTONEIRA L A36 7/8 X 1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 1344.0,
+          "custoUnit": 5.93
+        },
+        "330": {
+          "codigo": "330",
+          "descricao": "CHAPA ARTICULADA GALVANIZADA",
+          "grupo": "PORTA DE ENROLAR",
+          "estoqueDisp": 1503.25,
+          "custoUnit": 7.85
+        },
+        "406": {
+          "codigo": "406",
+          "descricao": "CHAPA PRETA 14 2,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1998.0,
+          "custoUnit": 6.5
+        },
+        "1399": {
+          "codigo": "1399",
+          "descricao": "PERFIL U SIMPLES 3 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 8547.6,
+          "custoUnit": 5.5
+        },
+        "2338": {
+          "codigo": "2338",
+          "descricao": "TELHA GALVALUME TRAP 0,47MM 4,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 111.0,
+          "custoUnit": 120.0
+        },
+        "483": {
+          "codigo": "483",
+          "descricao": "COLUNA 8.0MM (7X27)",
+          "grupo": "COLUNAS",
+          "estoqueDisp": 225.0,
+          "custoUnit": 55.6
+        },
+        "251": {
+          "codigo": "251",
+          "descricao": "CANTONEIRA L A36 3/4 X 1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 942.34,
+          "custoUnit": 5.93
+        },
+        "382": {
+          "codigo": "382",
+          "descricao": "LAMBRI OND GRANDE 2.00X1.06X0,75MM GALV",
+          "grupo": "CHAPA ONDULADA",
+          "estoqueDisp": 350.0,
+          "custoUnit": 8.03
+        },
+        "444": {
+          "codigo": "444",
+          "descricao": "CHAPA XADREZ 1/8 2,00X1,20",
+          "grupo": "CHAPA XADREZ",
+          "estoqueDisp": 56.56,
+          "custoUnit": 6.36
+        },
+        "757": {
+          "codigo": "757",
+          "descricao": "ELETRODO 6013 DENVER 2.50MM",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 467.44,
+          "custoUnit": 14.43
+        },
+        "1805": {
+          "codigo": "1805",
+          "descricao": "TUBO INDUSTRIAL GALV. 1.1/4\" (1,25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1110.0,
+          "custoUnit": 7.83
+        },
+        "1381": {
+          "codigo": "1381",
+          "descricao": "PERFIL U SIMPLES 127X50X3,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 971.0,
+          "custoUnit": 5.93
+        },
+        "2223": {
+          "codigo": "2223",
+          "descricao": "METALON GALV 80X40X16 (1,55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 0.0,
+          "custoUnit": 8.2
+        },
+        "229": {
+          "codigo": "229",
+          "descricao": "CANTONEIRA L A36 1X3/16",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 878.08,
+          "custoUnit": 5.91
+        },
+        "396": {
+          "codigo": "396",
+          "descricao": "CHAPA PRETA 1/8 2,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 3205.0,
+          "custoUnit": 6.36
+        },
+        "2191": {
+          "codigo": "2191",
+          "descricao": "LAMBRI OND GRANDE 2.00X1.06X0,90MM GALV",
+          "grupo": "CHAPA ONDULADA",
+          "estoqueDisp": 533.2,
+          "custoUnit": 7.58
+        },
+        "1191": {
+          "codigo": "1191",
+          "descricao": "METALON GALV 40 X 40 1,55",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2432.83,
+          "custoUnit": 7.82
+        },
+        "688": {
+          "codigo": "688",
+          "descricao": "DISCO CORTE DE 7 X 0,060 X 7/8 TYROLIT",
+          "grupo": "DISCOS",
+          "estoqueDisp": 2167.0,
+          "custoUnit": 7.06
+        },
+        "1152": {
+          "codigo": "1152",
+          "descricao": "METALON GALV 20 X 20 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 3085.9,
+          "custoUnit": 7.58
+        },
+        "90": {
+          "codigo": "90",
+          "descricao": "BARRA QUADRADA A36 1/2",
+          "grupo": "BARRA QUADRADA",
+          "estoqueDisp": 2049.94,
+          "custoUnit": 6.85
+        },
+        "1807": {
+          "codigo": "1807",
+          "descricao": "TUBO INDUSTRIAL GALV. 1.1/4\" (1,95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1908.0,
+          "custoUnit": 7.9
+        },
+        "1095": {
+          "codigo": "1095",
+          "descricao": "METALON 25 X 25 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 362.34,
+          "custoUnit": 7.1
+        },
+        "1421": {
+          "codigo": "1421",
+          "descricao": "PREGO 1.1 2X13 (15X18)",
+          "grupo": "PREGOS",
+          "estoqueDisp": 1056.0,
+          "custoUnit": 10.33
+        },
+        "376": {
+          "codigo": "376",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 0,50M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 2728.43,
+          "custoUnit": 7.4
+        },
+        "1197": {
+          "codigo": "1197",
+          "descricao": "METALON GALV 50 X 50 X 16 (1.55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1099.15,
+          "custoUnit": 7.45
+        },
+        "1360": {
+          "codigo": "1360",
+          "descricao": "PERFIL U ENRIJECIDO 150X60X2,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1414.4,
+          "custoUnit": 6.57
+        },
+        "1175": {
+          "codigo": "1175",
+          "descricao": "METALON GALV 30 X 50 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 691.2,
+          "custoUnit": 8.2
+        },
+        "1603": {
+          "codigo": "1603",
+          "descricao": "TELA CONCRETO 6.0MM - Q283 10X10 - 2.45X6M",
+          "grupo": "TELAS",
+          "estoqueDisp": 101.0,
+          "custoUnit": 277.5
+        },
+        "40": {
+          "codigo": "40",
+          "descricao": "ARAME RECOZIDO 18 KG KG",
+          "grupo": "ARAME RECOZIDO",
+          "estoqueDisp": 3912.0,
+          "custoUnit": 7.32
+        },
+        "1426": {
+          "codigo": "1426",
+          "descricao": "PREGO 2X12 (16X21)",
+          "grupo": "PREGOS",
+          "estoqueDisp": 800.0,
+          "custoUnit": 9.69
+        },
+        "1338": {
+          "codigo": "1338",
+          "descricao": "PERFIL U ENRIJECIDO 4 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 4314.8,
+          "custoUnit": 5.83
+        },
+        "1157": {
+          "codigo": "1157",
+          "descricao": "METALON GALV 25 X 25 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1049.58,
+          "custoUnit": 8.2
+        },
+        "232": {
+          "codigo": "232",
+          "descricao": "CANTONEIRA L A36 1.1/2X3/16",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 2780.2,
+          "custoUnit": 6.02
+        },
+        "231": {
+          "codigo": "231",
+          "descricao": "CANTONEIRA L A36 1.1/2X1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 3380.1,
+          "custoUnit": 5.93
+        },
+        "1173": {
+          "codigo": "1173",
+          "descricao": "METALON GALV 30 X 30 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 30.0,
+          "custoUnit": 7.82
+        },
+        "2145": {
+          "codigo": "2145",
+          "descricao": "LAMBRI BAGUET GALV 0,75MM 2000MM X 1060MM",
+          "grupo": "CHAPA ONDULADA",
+          "estoqueDisp": 714.4,
+          "custoUnit": 8.03
+        },
+        "81": {
+          "codigo": "81",
+          "descricao": "BARRA CHATA A36 5/8 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 645.8,
+          "custoUnit": 5.91
+        },
+        "1472": {
+          "codigo": "1472",
+          "descricao": "RODIZIO V 2 CAIXA ABERTA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 1146.0,
+          "custoUnit": 9.81
+        },
+        "121": {
+          "codigo": "121",
+          "descricao": "BARRA REDONDA LAM A36 1/2",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 3201.0,
+          "custoUnit": 6.02
+        },
+        "1755": {
+          "codigo": "1755",
+          "descricao": "TUBO INDUSTRIAL 1.1 4 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 631.84,
+          "custoUnit": 6.49
+        },
+        "1947": {
+          "codigo": "1947",
+          "descricao": "VERGALHAO CA-60 4.2MM RETO (12M)",
+          "grupo": "VERGALHAO CA 60",
+          "estoqueDisp": 1193.64,
+          "custoUnit": 4.98
+        },
+        "1165": {
+          "codigo": "1165",
+          "descricao": "METALON GALV 30 X 20 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 3512.04,
+          "custoUnit": 8.2
+        },
+        "56": {
+          "codigo": "56",
+          "descricao": "BARRA CHATA A36 1.1/4 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1792.5,
+          "custoUnit": 6.02
+        },
+        "1806": {
+          "codigo": "1806",
+          "descricao": "TUBO INDUSTRIAL GALV. 1.1/4\" (1,55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2353.41,
+          "custoUnit": 7.9
+        },
+        "86": {
+          "codigo": "86",
+          "descricao": "BARRA CHATA A36 7/8 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 963.02,
+          "custoUnit": 5.92
+        },
+        "1616": {
+          "codigo": "1616",
+          "descricao": "TELHA GALVALUME TRAP 0,40MM 5,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 5.0,
+          "custoUnit": 160.0
+        },
+        "85": {
+          "codigo": "85",
+          "descricao": "BARRA CHATA A36 7/8 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1634.5,
+          "custoUnit": 5.93
+        },
+        "344": {
+          "codigo": "344",
+          "descricao": "CHAPA GALVANIZADA 14 2,00X1.20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 488.0,
+          "custoUnit": 7.37
+        },
+        "221": {
+          "codigo": "221",
+          "descricao": "CAIXA COM MOLA 5.0 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 16.0,
+          "custoUnit": 64.77
+        },
+        "350": {
+          "codigo": "350",
+          "descricao": "CHAPA GALVANIZADA 18 2,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 552.0,
+          "custoUnit": 7.51
+        },
+        "1332": {
+          "codigo": "1332",
+          "descricao": "PERFIL U ENRIJECIDO 3 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1625.9,
+          "custoUnit": 5.91
+        },
+        "1139": {
+          "codigo": "1139",
+          "descricao": "METALON 80 X 80 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1347.6,
+          "custoUnit": 6.13
+        },
+        "1146": {
+          "codigo": "1146",
+          "descricao": "METALON GALV 15 X 15 X 20 (0.95 )",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2847.51,
+          "custoUnit": 7.68
+        },
+        "1317": {
+          "codigo": "1317",
+          "descricao": "PERFIL U 1 PORTA ROLO GALV",
+          "grupo": "PORTA DE ENROLAR",
+          "estoqueDisp": 843.75,
+          "custoUnit": 7.51
+        },
+        "57": {
+          "codigo": "57",
+          "descricao": "BARRA CHATA A36 1.1/4 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1944.5,
+          "custoUnit": 5.92
+        },
+        "427": {
+          "codigo": "427",
+          "descricao": "CHAPA PRETA 3/16 2,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 2257.5,
+          "custoUnit": 6.25
+        },
+        "52": {
+          "codigo": "52",
+          "descricao": "BARRA CHATA A36 1.1/2 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 846.96,
+          "custoUnit": 5.75
+        },
+        "240": {
+          "codigo": "240",
+          "descricao": "CANTONEIRA L A36 2X3/16",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 3985.74,
+          "custoUnit": 6.02
+        },
+        "355": {
+          "codigo": "355",
+          "descricao": "CHAPA GALVANIZADA 20 2,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 825.6,
+          "custoUnit": 7.22
+        },
+        "1813": {
+          "codigo": "1813",
+          "descricao": "TUBO INDUSTRIAL GALV. 2\" (1,95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1991.98,
+          "custoUnit": 7.83
+        },
+        "1496": {
+          "codigo": "1496",
+          "descricao": "SAPATA PRONTA 10.0MM 70X70 MALHA (15X15)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 215.0,
+          "custoUnit": 21.04
+        },
+        "358": {
+          "codigo": "358",
+          "descricao": "CHAPA GALVANIZADA 22 2,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 835.5,
+          "custoUnit": 7.43
+        },
+        "1953": {
+          "codigo": "1953",
+          "descricao": "VERGALHAO CA-60 6.0MM RETO (12M)",
+          "grupo": "VERGALHAO CA 60",
+          "estoqueDisp": 10691.62,
+          "custoUnit": 5.05
+        },
+        "61": {
+          "codigo": "61",
+          "descricao": "BARRA CHATA A36 1/2 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 779.14,
+          "custoUnit": 6.85
+        },
+        "1392": {
+          "codigo": "1392",
+          "descricao": "PERFIL U SIMPLES 2 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 755.35,
+          "custoUnit": 5.98
+        },
+        "44": {
+          "codigo": "44",
+          "descricao": "BARRA CHATA A36 1 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 2994.18,
+          "custoUnit": 5.92
+        },
+        "239": {
+          "codigo": "239",
+          "descricao": "CANTONEIRA L A36 2X1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 6877.9,
+          "custoUnit": 6.02
+        },
+        "1186": {
+          "codigo": "1186",
+          "descricao": "METALON GALV 40 X 30 20 (0.95 )",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 3566.9,
+          "custoUnit": 7.76
+        },
+        "1812": {
+          "codigo": "1812",
+          "descricao": "TUBO INDUSTRIAL GALV. 2\" (1,25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 321.98,
+          "custoUnit": 8.66
+        },
+        "77": {
+          "codigo": "77",
+          "descricao": "BARRA CHATA A36 3/4 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 3805.36,
+          "custoUnit": 7.11
+        },
+        "685": {
+          "codigo": "685",
+          "descricao": "DISCO CORTE DE 4.1/2 X 0,040 X 7/8 TYROLIT",
+          "grupo": "DISCOS",
+          "estoqueDisp": 2786.0,
+          "custoUnit": 4.36
+        },
+        "934": {
+          "codigo": "934",
+          "descricao": "FITA DE ACO 1",
+          "grupo": "PORTA DE ENROLAR",
+          "estoqueDisp": 265.7,
+          "custoUnit": 38.31
+        },
+        "429": {
+          "codigo": "429",
+          "descricao": "CHAPA PRETA 3/16 3,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1741.0,
+          "custoUnit": 6.05
+        },
+        "51": {
+          "codigo": "51",
+          "descricao": "BARRA CHATA A36 1.1/2 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 2398.5,
+          "custoUnit": 6.11
+        },
+        "1198": {
+          "codigo": "1198",
+          "descricao": "METALON GALV 50 X 50 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1895.4,
+          "custoUnit": 7.82
+        },
+        "1640": {
+          "codigo": "1640",
+          "descricao": "THINNER GL 5L",
+          "grupo": "TINTA",
+          "estoqueDisp": 104.0,
+          "custoUnit": 73.36
+        },
+        "1389": {
+          "codigo": "1389",
+          "descricao": "PERFIL U SIMPLES 2 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1469.7,
+          "custoUnit": 6.65
+        },
+        "1932": {
+          "codigo": "1932",
+          "descricao": "VERGALHAO CA-50 20.00MM 3/4 RETO (12M)",
+          "grupo": "VERGALHAO CA 50",
+          "estoqueDisp": 6735.0,
+          "custoUnit": 4.56
+        },
+        "126": {
+          "codigo": "126",
+          "descricao": "BARRA REDONDA LAM A36 5/16",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 1094.42,
+          "custoUnit": 5.91
+        },
+        "1170": {
+          "codigo": "1170",
+          "descricao": "METALON GALV 30 X 30 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 3118.8,
+          "custoUnit": 8.2
+        },
+        "1320": {
+          "codigo": "1320",
+          "descricao": "PERFIL U SIMPLES ENC 92X30X1,80MM",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 5.87
+        },
+        "1501": {
+          "codigo": "1501",
+          "descricao": "SAPATA PRONTA 8.0MM 60X60 MALHA (15X15)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 99.0,
+          "custoUnit": 12.32
+        },
+        "78": {
+          "codigo": "78",
+          "descricao": "BARRA CHATA A36 3/4 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1639.2,
+          "custoUnit": 5.92
+        },
+        "1503": {
+          "codigo": "1503",
+          "descricao": "SAPATA PRONTA 8.0MM 70X70 MALHA (15X15)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 19.0,
+          "custoUnit": 13.92
+        },
+        "1820": {
+          "codigo": "1820",
+          "descricao": "TUBO INDUSTRIAL GALV. 3\" (1.95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 46.03,
+          "custoUnit": 7.9
+        },
+        "1744": {
+          "codigo": "1744",
+          "descricao": "TUBO INDUSTRIAL 1 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1116.33,
+          "custoUnit": 6.97
+        },
+        "1966": {
+          "codigo": "1966",
+          "descricao": "ELETRODO 6013 - 3.25MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 1939.17,
+          "custoUnit": 10.69
+        },
+        "1160": {
+          "codigo": "1160",
+          "descricao": "METALON GALV 25 X 25 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 3810.6,
+          "custoUnit": 8.66
+        },
+        "2268": {
+          "codigo": "2268",
+          "descricao": "TUBO INDUSTRIAL GALV. 5/8 (1,25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2294.36,
+          "custoUnit": 8.34
+        },
+        "1363": {
+          "codigo": "1363",
+          "descricao": "PERFIL U ENRIJECIDO 150X60X3,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 5630.0,
+          "custoUnit": 5.87
+        },
+        "1644": {
+          "codigo": "1644",
+          "descricao": "TINTA 3.6L PRIMER CINZA ESCURO",
+          "grupo": "TINTA",
+          "estoqueDisp": 17.0,
+          "custoUnit": 48.41
+        },
+        "2149": {
+          "codigo": "2149",
+          "descricao": "PERFIL ENC 68 X 30 2,0MM 6000MM",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1536.0,
+          "custoUnit": 5.52
+        },
+        "235": {
+          "codigo": "235",
+          "descricao": "CANTONEIRA L A36 1.1/4X3/16",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 863.4,
+          "custoUnit": 5.92
+        },
+        "1075": {
+          "codigo": "1075",
+          "descricao": "METALON 100 X100 X14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1682.0,
+          "custoUnit": 6.13
+        },
+        "227": {
+          "codigo": "227",
+          "descricao": "CANTONEIRA L A36 1X1/4",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 1616.84,
+          "custoUnit": 5.92
+        },
+        "82": {
+          "codigo": "82",
+          "descricao": "BARRA CHATA A36 5/8 X 2.5MM",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 56.3,
+          "custoUnit": 6.34
+        },
+        "1403": {
+          "codigo": "1403",
+          "descricao": "PERFIL U SIMPLES 3 X 3/16",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 826.8,
+          "custoUnit": 6.55
+        },
+        "220": {
+          "codigo": "220",
+          "descricao": "CAIXA COM MOLA 4.5 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 47.0,
+          "custoUnit": 58.81
+        },
+        "128": {
+          "codigo": "128",
+          "descricao": "BARRA REDONDA LAM A36 7/8",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 180.6,
+          "custoUnit": 6.25
+        },
+        "125": {
+          "codigo": "125",
+          "descricao": "BARRA REDONDA LAM A36 3/8",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 5.92
+        },
+        "2155": {
+          "codigo": "2155",
+          "descricao": "TINTA PRIMER ACAB. CINZA ESCURO ACETINADO 18L",
+          "grupo": "TINTA",
+          "estoqueDisp": 4.0,
+          "custoUnit": 508.65
+        },
+        "752": {
+          "codigo": "752",
+          "descricao": "DOBRADICA TARUGO 5/8 (GONZO)",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 748.0,
+          "custoUnit": 1.0
+        },
+        "1325": {
+          "codigo": "1325",
+          "descricao": "PERFIL U ENRIJECIDO 2 X 14",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 6.73
+        },
+        "885": {
+          "codigo": "885",
+          "descricao": "FECHADURA 603 11 1 2 MAC STAM INOX",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 13.0,
+          "custoUnit": 49.25
+        },
+        "2161": {
+          "codigo": "2161",
+          "descricao": "TINTA PRIMER 18L ACAB. PRETO ACET",
+          "grupo": "TINTA",
+          "estoqueDisp": 7.0,
+          "custoUnit": 508.64
+        },
+        "1243": {
+          "codigo": "1243",
+          "descricao": "PE DE PORTA GALVANIZADO",
+          "grupo": "PORTA DE ENROLAR",
+          "estoqueDisp": 2502.0,
+          "custoUnit": 7.59
+        },
+        "66": {
+          "codigo": "66",
+          "descricao": "BARRA CHATA A36 2 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1789.5,
+          "custoUnit": 5.93
+        },
+        "1993": {
+          "codigo": "1993",
+          "descricao": "BOBINA CA-60 - 4,2mm",
+          "grupo": "BOBINA CA 60",
+          "estoqueDisp": 506.0,
+          "custoUnit": 5.05
+        },
+        "2148": {
+          "codigo": "2148",
+          "descricao": "SUCATA DE AMARRACAO",
+          "grupo": "SUCATA",
+          "estoqueDisp": 5.0,
+          "custoUnit": 0.6
+        },
+        "2159": {
+          "codigo": "2159",
+          "descricao": "TINTA 3.6L GALVANITEX CINZA MEDIO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 8.0,
+          "custoUnit": 80.13
+        },
+        "124": {
+          "codigo": "124",
+          "descricao": "BARRA REDONDA LAM A36 3/4",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 1434.5,
+          "custoUnit": 5.92
+        },
+        "347": {
+          "codigo": "347",
+          "descricao": "CHAPA GALVANIZADA 16 2,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 2061.0,
+          "custoUnit": 7.22
+        },
+        "1500": {
+          "codigo": "1500",
+          "descricao": "SAPATA PRONTA 8.0MM 50X50 MALHA (10X10)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 232.0,
+          "custoUnit": 10.8
+        },
+        "72": {
+          "codigo": "72",
+          "descricao": "BARRA CHATA A36 2.1/2 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 3511.8,
+          "custoUnit": 5.83
+        },
+        "217": {
+          "codigo": "217",
+          "descricao": "CAIXA COM MOLA 3.0 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 39.0,
+          "custoUnit": 45.06
+        },
+        "2137": {
+          "codigo": "2137",
+          "descricao": "CAIXA COM MOLA 5.5 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 49.0,
+          "custoUnit": 76.28
+        },
+        "772": {
+          "codigo": "772",
+          "descricao": "ELETRODO 7018 3.25MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 133.07,
+          "custoUnit": 14.02
+        },
+        "1088": {
+          "codigo": "1088",
+          "descricao": "METALON 20 X 30 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1693.94,
+          "custoUnit": 8.02
+        },
+        "1968": {
+          "codigo": "1968",
+          "descricao": "ELETRODO 7018 2.50MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 471.32,
+          "custoUnit": 15.72
+        },
+        "758": {
+          "codigo": "758",
+          "descricao": "ELETRODO 6013 DENVER 3.25MM",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 123.1,
+          "custoUnit": 13.49
+        },
+        "218": {
+          "codigo": "218",
+          "descricao": "CAIXA COM MOLA 3.5 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 65.0,
+          "custoUnit": 49.48
+        },
+        "1797": {
+          "codigo": "1797",
+          "descricao": "TUBO INDUSTRIAL GALV. 1\" (1.55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1817.52,
+          "custoUnit": 8.3
+        },
+        "2240": {
+          "codigo": "2240",
+          "descricao": "ROLDANA FER. GIRAT. 2X17MM V C/ CX FECHADA REB",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 89.0,
+          "custoUnit": 23.26
+        },
+        "979": {
+          "codigo": "979",
+          "descricao": "PARAFUSO AUTOBROCANTE 12 X 1\" DETONI",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 3250.0,
+          "custoUnit": 0.18
+        },
+        "1483": {
+          "codigo": "1483",
+          "descricao": "RODIZIO V 3 CAIXA FECHADA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 118.0,
+          "custoUnit": 25.0
+        },
+        "1134": {
+          "codigo": "1134",
+          "descricao": "METALON 70 X 70 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1832.56,
+          "custoUnit": 6.13
+        },
+        "895": {
+          "codigo": "895",
+          "descricao": "FECH 603/11 BUZIOS STAM PRETO FOSCO MEIA MAC",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 16.0,
+          "custoUnit": 41.42
+        },
+        "982": {
+          "codigo": "982",
+          "descricao": "PARAFUSO AUTOBROCANTE 12 X 3/4\" DETONI",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 280.0,
+          "custoUnit": 0.1
+        },
+        "493": {
+          "codigo": "493",
+          "descricao": "CONCERTINA SB SIMPLES GALV 450MM",
+          "grupo": "TELAS AGROPECUARIAS",
+          "estoqueDisp": 243.0,
+          "custoUnit": 68.15
+        },
+        "1758": {
+          "codigo": "1758",
+          "descricao": "TUBO INDUSTRIAL 1.1 4 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1530.78,
+          "custoUnit": 6.96
+        },
+        "486": {
+          "codigo": "486",
+          "descricao": "CONCERTINA SB DUPLA GALV 450MM",
+          "grupo": "TELAS AGROPECUARIAS",
+          "estoqueDisp": 1.0,
+          "custoUnit": 86.73
+        },
+        "1193": {
+          "codigo": "1193",
+          "descricao": "METALON GALV 40 X 40 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 0.0,
+          "custoUnit": 7.9
+        },
+        "2328": {
+          "codigo": "2328",
+          "descricao": "METALON GALV PRE PINTADO 30 X 30 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 585.0,
+          "custoUnit": 7.82
+        },
+        "41": {
+          "codigo": "41",
+          "descricao": "ARAME RECOZIDO 18 KG KG TORCIDO",
+          "grupo": "ARAME RECOZIDO",
+          "estoqueDisp": 2917.0,
+          "custoUnit": 9.02
+        },
+        "1798": {
+          "codigo": "1798",
+          "descricao": "TUBO INDUSTRIAL GALV. 1\" (1.95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 828.96,
+          "custoUnit": 7.9
+        },
+        "20": {
+          "codigo": "20",
+          "descricao": "ARAME GALV 16 ROLO GR (62,5 KG M)",
+          "grupo": "ARAMES",
+          "estoqueDisp": 1572.5,
+          "custoUnit": 10.43
+        },
+        "1323": {
+          "codigo": "1323",
+          "descricao": "PERFIL U ENRIJECIDO 2 X 1/8",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1727.01,
+          "custoUnit": 6.57
+        },
+        "750": {
+          "codigo": "750",
+          "descricao": "DOBRADICA TARUGO 3/4 (GONZO)",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 410.0,
+          "custoUnit": 3.08
+        },
+        "1461": {
+          "codigo": "1461",
+          "descricao": "ROLDANA FERRO SUPERIOR 1.1/2 X C HASTE",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 22.0,
+          "custoUnit": 12.64
+        },
+        "1101": {
+          "codigo": "1101",
+          "descricao": "METALON 30 X 30 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1687.32,
+          "custoUnit": 7.88
+        },
+        "2163": {
+          "codigo": "2163",
+          "descricao": "TINTA 18L OXIDO METALICO PRETO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 234.62
+        },
+        "63": {
+          "codigo": "63",
+          "descricao": "BARRA CHATA A36 1/2 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 7326.48,
+          "custoUnit": 6.66
+        },
+        "744": {
+          "codigo": "744",
+          "descricao": "DOBRADICA GONZO COM ABA N1",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 260.0,
+          "custoUnit": 2.45
+        },
+        "21": {
+          "codigo": "21",
+          "descricao": "ARAME GALV 18 KG KG (111,11 KG M)",
+          "grupo": "ARAMES",
+          "estoqueDisp": 442.0,
+          "custoUnit": 14.89
+        },
+        "745": {
+          "codigo": "745",
+          "descricao": "DOBRADICA GONZO COM ABA N2",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 11.0,
+          "custoUnit": 3.19
+        },
+        "894": {
+          "codigo": "894",
+          "descricao": "FECH 603/11 BUZIOS STAM BRANCO MEIA MAC",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 63.0,
+          "custoUnit": 41.42
+        },
+        "219": {
+          "codigo": "219",
+          "descricao": "CAIXA COM MOLA 4.0 X 45 X 1.1/4",
+          "grupo": "CAIXA DE MOLA",
+          "estoqueDisp": 43.0,
+          "custoUnit": 55.23
+        },
+        "2265": {
+          "codigo": "2265",
+          "descricao": "ROLD GUIA ROLLETE 62X19MM C/ ROLAMENTO 35MM",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 119.0,
+          "custoUnit": 19.25
+        },
+        "75": {
+          "codigo": "75",
+          "descricao": "BARRA CHATA A36 3 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 2453.0,
+          "custoUnit": 5.83
+        },
+        "1455": {
+          "codigo": "1455",
+          "descricao": "RODIZIO NYLON V 2 CAIXA ABERTA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 45.0,
+          "custoUnit": 7.88
+        },
+        "1752": {
+          "codigo": "1752",
+          "descricao": "TUBO INDUSTRIAL 1.1/2 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1575.42,
+          "custoUnit": 6.9
+        },
+        "856": {
+          "codigo": "856",
+          "descricao": "FECHADURA 401 7 STAM PRETO FOSCO (G)",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 19.0,
+          "custoUnit": 41.3
+        },
+        "888": {
+          "codigo": "888",
+          "descricao": "FECHADURA 603 11 STAM INOX",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 26.0,
+          "custoUnit": 59.34
+        },
+        "122": {
+          "codigo": "122",
+          "descricao": "BARRA REDONDA LAM A36 1/4",
+          "grupo": "BARRA REDONDA LAMINADA",
+          "estoqueDisp": 1416.0,
+          "custoUnit": 5.91
+        },
+        "2156": {
+          "codigo": "2156",
+          "descricao": "TINTA PRIMER 3,6L ACAB CINZA ESCURO ACET",
+          "grupo": "TINTA",
+          "estoqueDisp": 1.0,
+          "custoUnit": 119.24
+        },
+        "137": {
+          "codigo": "137",
+          "descricao": "BARRA ROSCADA 3/8X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 65.0,
+          "custoUnit": 4.13
+        },
+        "1176": {
+          "codigo": "1176",
+          "descricao": "METALON GALV 30 X 50 X 14 (1.95)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 14.45,
+          "custoUnit": 7.9
+        },
+        "228": {
+          "codigo": "228",
+          "descricao": "CANTONEIRA L A36 1X1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 5.93
+        },
+        "1090": {
+          "codigo": "1090",
+          "descricao": "METALON 20 X 30 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1602.9,
+          "custoUnit": 8.02
+        },
+        "848": {
+          "codigo": "848",
+          "descricao": "FECHADURA 1201 P. DE ROLO STAM PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 10.0,
+          "custoUnit": 28.92
+        },
+        "887": {
+          "codigo": "887",
+          "descricao": "FECHADURA 603 11 STAM PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 73.0,
+          "custoUnit": 54.89
+        },
+        "1995": {
+          "codigo": "1995",
+          "descricao": "BOBINA CA-60 - 6,0mm",
+          "grupo": "BOBINA CA 60",
+          "estoqueDisp": 195.0,
+          "custoUnit": 4.56
+        },
+        "1454": {
+          "codigo": "1454",
+          "descricao": "GUIA DUPLO LONGO NYLON ZNC 28 X 35 MM",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 92.0,
+          "custoUnit": 16.68
+        },
+        "2308": {
+          "codigo": "2308",
+          "descricao": "ARAME GALV 14 ROLO 1 KG",
+          "grupo": "ARAMES",
+          "estoqueDisp": 269.0,
+          "custoUnit": 11.22
+        },
+        "372": {
+          "codigo": "372",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 0,30M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 8.0
+        },
+        "19": {
+          "codigo": "19",
+          "descricao": "ARAME GALV 14 ROLO GR (38,46 KG M)",
+          "grupo": "ARAMES",
+          "estoqueDisp": 1693.5,
+          "custoUnit": 9.72
+        },
+        "1478": {
+          "codigo": "1478",
+          "descricao": "RODIZIO V 2.1/2 CAIXA ABERTA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 27.0,
+          "custoUnit": 17.86
+        },
+        "1771": {
+          "codigo": "1771",
+          "descricao": "TUBO INDUSTRIAL 2.1/2 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 291.2,
+          "custoUnit": 6.45
+        },
+        "1633": {
+          "codigo": "1633",
+          "descricao": "THINNER 900ML",
+          "grupo": "TINTA",
+          "estoqueDisp": 54.0,
+          "custoUnit": 13.46
+        },
+        "898": {
+          "codigo": "898",
+          "descricao": "FECHADURA 701 100 SOB STAM INOX PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 20.0,
+          "custoUnit": 48.82
+        },
+        "233": {
+          "codigo": "233",
+          "descricao": "CANTONEIRA L A36 1.1/4X1/4",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 2462.72,
+          "custoUnit": 5.92
+        },
+        "1757": {
+          "codigo": "1757",
+          "descricao": "TUBO INDUSTRIAL 1.1/4 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 0.0,
+          "custoUnit": 6.9
+        },
+        "1110": {
+          "codigo": "1110",
+          "descricao": "METALON 40 X 30 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 272.13,
+          "custoUnit": 7.08
+        },
+        "2267": {
+          "codigo": "2267",
+          "descricao": "DISCO CORTE TYROLIT 12 X 3/32 X 1",
+          "grupo": "DISCOS",
+          "estoqueDisp": 284.0,
+          "custoUnit": 19.26
+        },
+        "65": {
+          "codigo": "65",
+          "descricao": "BARRA CHATA A36 2 X 1/8",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 3839.04,
+          "custoUnit": 6.22
+        },
+        "746": {
+          "codigo": "746",
+          "descricao": "DOBRADICA GONZO COM ABA N3",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 580.0,
+          "custoUnit": 4.67
+        },
+        "1474": {
+          "codigo": "1474",
+          "descricao": "RODIZIO V 2 CAIXA FECHADA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 577.0,
+          "custoUnit": 12.45
+        },
+        "17": {
+          "codigo": "17",
+          "descricao": "ARAME GALV 10 ROLO GR (14,08 KG M)",
+          "grupo": "ARAMES",
+          "estoqueDisp": 12.0,
+          "custoUnit": 9.54
+        },
+        "84": {
+          "codigo": "84",
+          "descricao": "BARRA CHATA A36 7/8 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1743.4,
+          "custoUnit": 6.62
+        },
+        "1467": {
+          "codigo": "1467",
+          "descricao": "RODIZIO V 1.1/2 CX ABERTA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 42.0,
+          "custoUnit": 10.54
+        },
+        "2294": {
+          "codigo": "2294",
+          "descricao": "DISCO FLAP TYROLIT ONE 4.1/2X7/8 GR80",
+          "grupo": "DISCOS",
+          "estoqueDisp": 55.0,
+          "custoUnit": 4.54
+        },
+        "1427": {
+          "codigo": "1427",
+          "descricao": "PREGO 3X8",
+          "grupo": "PREGOS",
+          "estoqueDisp": 4257.0,
+          "custoUnit": 8.81
+        },
+        "2154": {
+          "codigo": "2154",
+          "descricao": "TINTA 3.6L GALVANITEX CINZA ESCURO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 9.0,
+          "custoUnit": 80.14
+        },
+        "381": {
+          "codigo": "381",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 1,20M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 82.32,
+          "custoUnit": 8.65
+        },
+        "692": {
+          "codigo": "692",
+          "descricao": "DISCO CORTE TYROLIT 12 X 3/32 X 5/8",
+          "grupo": "DISCOS",
+          "estoqueDisp": 44.0,
+          "custoUnit": 19.26
+        },
+        "900": {
+          "codigo": "900",
+          "descricao": "FECHADURA 901 BICO PAPAGAIO ESP STAM PRETO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 79.0,
+          "custoUnit": 37.71
+        },
+        "1992": {
+          "codigo": "1992",
+          "descricao": "BOBINA CA-60 - 3,4mm",
+          "grupo": "BOBINA CA 60",
+          "estoqueDisp": 1851.0,
+          "custoUnit": 5.05
+        },
+        "2263": {
+          "codigo": "2263",
+          "descricao": "ROLD GUIA NY 44MM C/ ROLAM HASTE ROSCA 1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 45.0,
+          "custoUnit": 7.14
+        },
+        "1092": {
+          "codigo": "1092",
+          "descricao": "METALON 20 X 40 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1494.08,
+          "custoUnit": 7.1
+        },
+        "2293": {
+          "codigo": "2293",
+          "descricao": "DISCO FLAP TYROLIT ONE 4.1/2X7/8 GR40",
+          "grupo": "DISCOS",
+          "estoqueDisp": 25.0,
+          "custoUnit": 4.82
+        },
+        "748": {
+          "codigo": "748",
+          "descricao": "DOBRADICA TARUGO 1 (GONZO)",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 495.0,
+          "custoUnit": 9.66
+        },
+        "749": {
+          "codigo": "749",
+          "descricao": "DOBRADICA TARUGO 1/2 (GONZO)",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 651.0,
+          "custoUnit": 0.97
+        },
+        "2291": {
+          "codigo": "2291",
+          "descricao": "DISCO DESBASTE TYROLIT 4-1/2X1/4X7/8",
+          "grupo": "DISCOS",
+          "estoqueDisp": 102.0,
+          "custoUnit": 4.15
+        },
+        "893": {
+          "codigo": "893",
+          "descricao": "FECHADURA 603 11 74MM ESP. INOX",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 32.0,
+          "custoUnit": 54.34
+        },
+        "1430": {
+          "codigo": "1430",
+          "descricao": "REBITE 1 4X1/8 100GR",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 17436.0,
+          "custoUnit": 0.01
+        },
+        "886": {
+          "codigo": "886",
+          "descricao": "FECHADURA 603 11 STAM BRANCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 28.0,
+          "custoUnit": 54.89
+        },
+        "695": {
+          "codigo": "695",
+          "descricao": "DISCO CORTE TYROLIT 12 X 9/64 X 1",
+          "grupo": "DISCOS",
+          "estoqueDisp": 30.0,
+          "custoUnit": 24.37
+        },
+        "2245": {
+          "codigo": "2245",
+          "descricao": "GUIA SUPERIOR NYLON P/ POR DESLOC 28MMX35",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 63.0,
+          "custoUnit": 3.13
+        },
+        "896": {
+          "codigo": "896",
+          "descricao": "FECH 603/11 BUZIOS STAM INOX MEIA MAC",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 84.0,
+          "custoUnit": 47.6
+        },
+        "849": {
+          "codigo": "849",
+          "descricao": "FECHADURA 200 P. DE ROLO STAM PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 18.0,
+          "custoUnit": 44.72
+        },
+        "1105": {
+          "codigo": "1105",
+          "descricao": "METALON 30 X 50 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 8.9,
+          "custoUnit": 7.08
+        },
+        "237": {
+          "codigo": "237",
+          "descricao": "CANTONEIRA L A36 1/2X1/8",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 319.2,
+          "custoUnit": 6.85
+        },
+        "18": {
+          "codigo": "18",
+          "descricao": "ARAME GALV 12 ROLO GR (22,22 KG M)",
+          "grupo": "ARAMES",
+          "estoqueDisp": 3360.0,
+          "custoUnit": 9.54
+        },
+        "2123": {
+          "codigo": "2123",
+          "descricao": "PARAFUSO AUTOBROCANTE 12 X 3/4\" BULLFOR",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 7574.0,
+          "custoUnit": 0.1
+        },
+        "2292": {
+          "codigo": "2292",
+          "descricao": "DISCO DESBASTE TYROLIT 7X1/4X7/8 A30Q",
+          "grupo": "DISCOS",
+          "estoqueDisp": 37.0,
+          "custoUnit": 7.94
+        },
+        "708": {
+          "codigo": "708",
+          "descricao": "DISCO DESBASTE AL TYROLIT 4.1/2 X 1/4 X 7/8",
+          "grupo": "DISCOS",
+          "estoqueDisp": 169.0,
+          "custoUnit": 5.13
+        },
+        "890": {
+          "codigo": "890",
+          "descricao": "FECHADURA 603 11 1/2 MAC STAM PRETO FOSC",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 41.47
+        },
+        "2244": {
+          "codigo": "2244",
+          "descricao": "ROLD GUIA FER 48MM C/ ROL HASTE ROSCA 1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 91.0,
+          "custoUnit": 14.23
+        },
+        "1481": {
+          "codigo": "1481",
+          "descricao": "RODIZIO V 3",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 24.0,
+          "custoUnit": 22.37
+        },
+        "130": {
+          "codigo": "130",
+          "descricao": "BARRA ROSCADA 1/2X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 62.0,
+          "custoUnit": 7.84
+        },
+        "1491": {
+          "codigo": "1491",
+          "descricao": "ROLDANA FERRO SUPERIOR 2.1/2 X 17MM C HASTE",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 40.0,
+          "custoUnit": 18.62
+        },
+        "2269": {
+          "codigo": "2269",
+          "descricao": "TUBO INDUSTRIAL GALV. 5/8 (1,55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2342.35,
+          "custoUnit": 8.02
+        },
+        "683": {
+          "codigo": "683",
+          "descricao": "DISCO CORTE DE 4.1/2 X 1/16 X 7/8 INOX",
+          "grupo": "DISCOS",
+          "estoqueDisp": 570.0,
+          "custoUnit": 4.08
+        },
+        "1465": {
+          "codigo": "1465",
+          "descricao": "RODIZIO V 1 STANLEY",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 31.0,
+          "custoUnit": 7.86
+        },
+        "94": {
+          "codigo": "94",
+          "descricao": "BARRA QUADRADA A36 3/8",
+          "grupo": "BARRA QUADRADA",
+          "estoqueDisp": 7754.66,
+          "custoUnit": 7.69
+        },
+        "1085": {
+          "codigo": "1085",
+          "descricao": "METALON 20 X 20 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 88.02,
+          "custoUnit": 8.02
+        },
+        "694": {
+          "codigo": "694",
+          "descricao": "DISCO CORTE TYROLIT 14 X 7/64 X 1",
+          "grupo": "DISCOS",
+          "estoqueDisp": 63.0,
+          "custoUnit": 22.06
+        },
+        "467": {
+          "codigo": "467",
+          "descricao": "CADEADO 30MM STAM",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 27.0,
+          "custoUnit": 11.45
+        },
+        "682": {
+          "codigo": "682",
+          "descricao": "DISCO CORTE TYROLIT 12 X 3 32 X 3/4",
+          "grupo": "DISCOS",
+          "estoqueDisp": 275.0,
+          "custoUnit": 19.13
+        },
+        "1466": {
+          "codigo": "1466",
+          "descricao": "RODIZIO V 1.1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 75.0,
+          "custoUnit": 9.25
+        },
+        "680": {
+          "codigo": "680",
+          "descricao": "DISCO CORTE DE 12 X 1/8 X 1 BOSCH",
+          "grupo": "DISCOS",
+          "estoqueDisp": 3.0,
+          "custoUnit": 18.0
+        },
+        "1790": {
+          "codigo": "1790",
+          "descricao": "TUBO INDUSTRIAL 5/8 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 259.01,
+          "custoUnit": 7.34
+        },
+        "1429": {
+          "codigo": "1429",
+          "descricao": "REBITE POP 412",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 74.0,
+          "custoUnit": 0.07
+        },
+        "2288": {
+          "codigo": "2288",
+          "descricao": "DISCO FLAP TYROLIT ONE 4.1/2X7/8 GR60",
+          "grupo": "DISCOS",
+          "estoqueDisp": 127.0,
+          "custoUnit": 4.54
+        },
+        "379": {
+          "codigo": "379",
+          "descricao": "CHAPA GALVANIZADA EM BOBINA 0,80M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 56.84,
+          "custoUnit": 8.65
+        },
+        "2256": {
+          "codigo": "2256",
+          "descricao": "PORCA SX UNC 3/8 CHV 9/16 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 26.0,
+          "custoUnit": 0.11
+        },
+        "676": {
+          "codigo": "676",
+          "descricao": "DISCO CORTE DE 10 X 1/8 X 3/4 STAR",
+          "grupo": "DISCOS",
+          "estoqueDisp": 20.0,
+          "custoUnit": 6.13
+        },
+        "2192": {
+          "codigo": "2192",
+          "descricao": "DISCO DE CORTE BOSCH 7X1,6X22,23",
+          "grupo": "DISCOS",
+          "estoqueDisp": 48.0,
+          "custoUnit": 3.35
+        },
+        "751": {
+          "codigo": "751",
+          "descricao": "DOBRADICA TARUGO 3/8 (GONZO)",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 399.0,
+          "custoUnit": 0.6
+        },
+        "710": {
+          "codigo": "710",
+          "descricao": "DISCO DESBASTE DE 4.1/2 X 1/4 X 7/8 STAR",
+          "grupo": "DISCOS",
+          "estoqueDisp": 12.0,
+          "custoUnit": 3.93
+        },
+        "2249": {
+          "codigo": "2249",
+          "descricao": "ARRUELA LISA 1/2 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 2.0,
+          "custoUnit": 0.2
+        },
+        "2251": {
+          "codigo": "2251",
+          "descricao": "ARRUELA LISA 3/4 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 20.0,
+          "custoUnit": 0.41
+        },
+        "2248": {
+          "codigo": "2248",
+          "descricao": "ARRUELA LISA 3/8 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 4.0,
+          "custoUnit": 0.09
+        },
+        "2253": {
+          "codigo": "2253",
+          "descricao": "ARRUELA LISA 7/8 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 30.0,
+          "custoUnit": 0.46
+        },
+        "134": {
+          "codigo": "134",
+          "descricao": "BARRA ROSCADA 1X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 73.0,
+          "custoUnit": 72.21
+        },
+        "132": {
+          "codigo": "132",
+          "descricao": "BARRA ROSCADA 1/4X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 57.0,
+          "custoUnit": 1.93
+        },
+        "136": {
+          "codigo": "136",
+          "descricao": "BARRA ROSCADA 3/4X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 104.0,
+          "custoUnit": 20.95
+        },
+        "139": {
+          "codigo": "139",
+          "descricao": "BARRA ROSCADA 5/16X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 106.0,
+          "custoUnit": 2.93
+        },
+        "144": {
+          "codigo": "144",
+          "descricao": "BARRA ROSCADA 7/8X1.00",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 97.0,
+          "custoUnit": 51.47
+        },
+        "1431": {
+          "codigo": "1431",
+          "descricao": "CADEADO 20MM STAM",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 41.0,
+          "custoUnit": 7.55
+        },
+        "687": {
+          "codigo": "687",
+          "descricao": "DISCO CORTE DE 7 X 1/8 X 7/8 STAR",
+          "grupo": "DISCOS",
+          "estoqueDisp": 981.0,
+          "custoUnit": 3.97
+        },
+        "693": {
+          "codigo": "693",
+          "descricao": "DISCO CORTE TYROLIT 12 X 9/64 X 5/8",
+          "grupo": "DISCOS",
+          "estoqueDisp": 146.0,
+          "custoUnit": 19.46
+        },
+        "2284": {
+          "codigo": "2284",
+          "descricao": "DISCO CORTE 4.1/2X040X7/8  A60Q ONE TYROLIT",
+          "grupo": "DISCOS",
+          "estoqueDisp": 838.0,
+          "custoUnit": 1.2
+        },
+        "2285": {
+          "codigo": "2285",
+          "descricao": "DISCO CORTE 4.1/2X040X7/8 A60Q BASIC TYROLIT",
+          "grupo": "DISCOS",
+          "estoqueDisp": 144.0,
+          "custoUnit": 1.35
+        },
+        "2286": {
+          "codigo": "2286",
+          "descricao": "DISCO CORTE 7 X 060 X 7/8 A46Q TYROLIT",
+          "grupo": "DISCOS",
+          "estoqueDisp": 3.0,
+          "custoUnit": 3.9
+        },
+        "2287": {
+          "codigo": "2287",
+          "descricao": "DISCO DE CORTE TYROLIT 4.1/2X1/8X7/8 10A36R4B",
+          "grupo": "DISCOS",
+          "estoqueDisp": 190.0,
+          "custoUnit": 7.28
+        },
+        "2289": {
+          "codigo": "2289",
+          "descricao": "DISCO DE CORTE TYROLIT 7X1/16X7/8 A46Q",
+          "grupo": "DISCOS",
+          "estoqueDisp": 3.0,
+          "custoUnit": 3.28
+        },
+        "2290": {
+          "codigo": "2290",
+          "descricao": "DISCO DE CORTE TYROLIT 9X075X7/8 A46Q",
+          "grupo": "DISCOS",
+          "estoqueDisp": 69.0,
+          "custoUnit": 7.14
+        },
+        "711": {
+          "codigo": "711",
+          "descricao": "DISCO DESBASTE DE 7 X 1/4 X 7/8 STAR",
+          "grupo": "DISCOS",
+          "estoqueDisp": 95.0,
+          "custoUnit": 9.33
+        },
+        "712": {
+          "codigo": "712",
+          "descricao": "DISCO DESBASTE TYROLIT 7 X 1/4 X 7/8",
+          "grupo": "DISCOS",
+          "estoqueDisp": 149.0,
+          "custoUnit": 11.31
+        },
+        "2295": {
+          "codigo": "2295",
+          "descricao": "DISCO FLAP TYROLIT ONE 4.1/2X7/8 GR120",
+          "grupo": "DISCOS",
+          "estoqueDisp": 178.0,
+          "custoUnit": 5.12
+        },
+        "725": {
+          "codigo": "725",
+          "descricao": "DISCO FLAP 4.1/2X7/8 GR120 BOSCH",
+          "grupo": "DISCOS",
+          "estoqueDisp": 86.0,
+          "custoUnit": 16.0
+        },
+        "2122": {
+          "codigo": "2122",
+          "descricao": "DOBRADICA GONZO COM ABA E CHUMBADOR N1",
+          "grupo": "DOBRADICAS",
+          "estoqueDisp": 505.0,
+          "custoUnit": 3.31
+        },
+        "755": {
+          "codigo": "755",
+          "descricao": "ELETRODO 6013 - 4.00MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 237.0,
+          "custoUnit": 9.62
+        },
+        "2195": {
+          "codigo": "2195",
+          "descricao": "ELETRODO 7018 2.50MM",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 147.55,
+          "custoUnit": 16.95
+        },
+        "2196": {
+          "codigo": "2196",
+          "descricao": "ELETRODO 7018 3.25MM",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 116.0,
+          "custoUnit": 16.55
+        },
+        "1969": {
+          "codigo": "1969",
+          "descricao": "ELETRODO 7018 4.00MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 7.02,
+          "custoUnit": 11.85
+        },
+        "832": {
+          "codigo": "832",
+          "descricao": "FECHA 603/11 BUZ 74MM ESP. PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 38.0,
+          "custoUnit": 50.28
+        },
+        "850": {
+          "codigo": "850",
+          "descricao": "FECHADURA 201 PORTA DE ROLO STAM PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 27.0,
+          "custoUnit": 27.7
+        },
+        "858": {
+          "codigo": "858",
+          "descricao": "FECHADURA 401 7 STAM INOX",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 3.0,
+          "custoUnit": 49.79
+        },
+        "857": {
+          "codigo": "857",
+          "descricao": "FECHADURA 401 7 STAM PRETO FOSCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 9.0,
+          "custoUnit": 46.05
+        },
+        "892": {
+          "codigo": "892",
+          "descricao": "FECHADURA 603 11 74MM ESP. BRANCO",
+          "grupo": "FECHADURA",
+          "estoqueDisp": 32.0,
+          "custoUnit": 50.28
+        },
+        "1460": {
+          "codigo": "1460",
+          "descricao": "GUIA DUPLO LONGO ZNC 22 X 75 MM",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 50.0,
+          "custoUnit": 28.49
+        },
+        "968": {
+          "codigo": "968",
+          "descricao": "HASTE ALUMINIO 5/16X350",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 6533.0,
+          "custoUnit": 3.73
+        },
+        "1977": {
+          "codigo": "1977",
+          "descricao": "KIT VEDACAO 5 16\" PORCA, ARRUELA E ROSCA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 6383.0,
+          "custoUnit": 0.62
+        },
+        "1974": {
+          "codigo": "1974",
+          "descricao": "PARAFUSO AUTOBROCANTE 12X7/8",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 1850.0,
+          "custoUnit": 0.54
+        },
+        "2261": {
+          "codigo": "2261",
+          "descricao": "PORCA SX UNC 1\" CHV 1.1/2 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 88.0,
+          "custoUnit": 3.19
+        },
+        "2257": {
+          "codigo": "2257",
+          "descricao": "PORCA SX UNC 1/2 CHV 3/4 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 150.0,
+          "custoUnit": 0.27
+        },
+        "2259": {
+          "codigo": "2259",
+          "descricao": "PORCA SX UNC 3/4 CHV 1.1/8 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 200.0,
+          "custoUnit": 0.69
+        },
+        "2255": {
+          "codigo": "2255",
+          "descricao": "PORCA SX UNC 5/16 CHV 1/2 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 10.0,
+          "custoUnit": 0.08
+        },
+        "2260": {
+          "codigo": "2260",
+          "descricao": "PORCA SX UNC 7/8 CHV 1.5/16 ZINCADA",
+          "grupo": "PARAFUSOS",
+          "estoqueDisp": 188.0,
+          "custoUnit": 1.82
+        },
+        "2217": {
+          "codigo": "2217",
+          "descricao": "RODIZIO ROL 6203 C  HASTE HERV",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 1.0,
+          "custoUnit": 6.18
+        },
+        "1470": {
+          "codigo": "1470",
+          "descricao": "RODIZIO V 1.1/2 STANLEY",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 48.0,
+          "custoUnit": 14.15
+        },
+        "1477": {
+          "codigo": "1477",
+          "descricao": "RODIZIO V 2.1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 168.0,
+          "custoUnit": 14.67
+        },
+        "2241": {
+          "codigo": "2241",
+          "descricao": "ROLD. FER. GIRAT. 2.1/2X19MM V C/ CX FECHADA - REBITADA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 76.0,
+          "custoUnit": 21.16
+        },
+        "2242": {
+          "codigo": "2242",
+          "descricao": "ROLD. FER. GIRAT. 3X19MM V C/ CX FECHADA",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 90.0,
+          "custoUnit": 26.96
+        },
+        "2243": {
+          "codigo": "2243",
+          "descricao": "ROLD GUIA FER 44MM C/ ROL HASTE ROSCA 1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 49.0,
+          "custoUnit": 10.51
+        },
+        "2262": {
+          "codigo": "2262",
+          "descricao": "ROLD GUIA NY 42MM C/ ROLAM HASTE ROSCA 1/2",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 28.0,
+          "custoUnit": 15.72
+        },
+        "2266": {
+          "codigo": "2266",
+          "descricao": "ROLD GUIA ROLLETE NY 44MM C/ ROLAMENTO",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 126.0,
+          "custoUnit": 6.92
+        },
+        "2264": {
+          "codigo": "2264",
+          "descricao": "ROLD GUIA ROLLETE 43MM C/ ROLAMENTO",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 42.0,
+          "custoUnit": 8.32
+        },
+        "2222": {
+          "codigo": "2222",
+          "descricao": "ROLDANA C  ROL 2\" CX FEC C  REBITE HERV",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 65.0,
+          "custoUnit": 12.38
+        },
+        "2221": {
+          "codigo": "2221",
+          "descricao": "ROLDANA C  ROL 2.1/2\" C  PINO V HERV",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 69.0,
+          "custoUnit": 12.46
+        },
+        "2218": {
+          "codigo": "2218",
+          "descricao": "ROLDANA C  ROL 3\" C  CX FECH C  REBITE HERV",
+          "grupo": "ROLDANA",
+          "estoqueDisp": 9.0,
+          "custoUnit": 17.47
+        },
+        "2309": {
+          "codigo": "2309",
+          "descricao": "ARAME GALV 16 ROLO 1 KG",
+          "grupo": "ARAMES",
+          "estoqueDisp": 484.0,
+          "custoUnit": 13.31
+        },
+        "50": {
+          "codigo": "50",
+          "descricao": "BARRA CHATA A36 1.1/2 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1830.0,
+          "custoUnit": 6.69
+        },
+        "64": {
+          "codigo": "64",
+          "descricao": "BARRA CHATA A36 2 X 1/4",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 2953.02,
+          "custoUnit": 6.85
+        },
+        "71": {
+          "codigo": "71",
+          "descricao": "BARRA CHATA A36 2.1/2 X 1/2",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 704.0,
+          "custoUnit": 6.62
+        },
+        "2184": {
+          "codigo": "2184",
+          "descricao": "BARRA CHATA A36 22 x 6MM 6M",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 980.0,
+          "custoUnit": 6.35
+        },
+        "2203": {
+          "codigo": "2203",
+          "descricao": "BARRA CHATA A36 5/8 X 3/16",
+          "grupo": "BARRA CHATA",
+          "estoqueDisp": 1745.0,
+          "custoUnit": 5.91
+        },
+        "93": {
+          "codigo": "93",
+          "descricao": "BARRA QUADRADA A36 3/4",
+          "grupo": "BARRA QUADRADA",
+          "estoqueDisp": 1850.0,
+          "custoUnit": 5.75
+        },
+        "230": {
+          "codigo": "230",
+          "descricao": "CANTONEIRA L A36 1.1/2X1/4",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 1279.36,
+          "custoUnit": 6.02
+        },
+        "238": {
+          "codigo": "238",
+          "descricao": "CANTONEIRA L A36 2X1/4",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 3321.3,
+          "custoUnit": 6.02
+        },
+        "253": {
+          "codigo": "253",
+          "descricao": "CANTONEIRA L A36 4 X 1/2",
+          "grupo": "CANTONEIRA",
+          "estoqueDisp": 9.68,
+          "custoUnit": 8.9
+        },
+        "2231": {
+          "codigo": "2231",
+          "descricao": "CHAPA GALV. BOBINA 0,35MM 0,60 X 20M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 12.0,
+          "custoUnit": 348.56
+        },
+        "2232": {
+          "codigo": "2232",
+          "descricao": "CHAPA GALV. BOBINA 0,35MM 0,70 X 25M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 20.0,
+          "custoUnit": 375.55
+        },
+        "2233": {
+          "codigo": "2233",
+          "descricao": "CHAPA GALV. BOBINA 0,35MM 0,80 X 25M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 17.0,
+          "custoUnit": 450.71
+        },
+        "2230": {
+          "codigo": "2230",
+          "descricao": "CHAPA GALV. BOBINA 0,35MM 1,20 X 20M",
+          "grupo": "BOBINA ZINCADA",
+          "estoqueDisp": 7.0,
+          "custoUnit": 560.83
+        },
+        "2315": {
+          "codigo": "2315",
+          "descricao": "CHAPA GALVANIZADA 20 6,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 157.0,
+          "custoUnit": 7.8
+        },
+        "363": {
+          "codigo": "363",
+          "descricao": "CHAPA GALVANIZADA 26 3,00X1,20",
+          "grupo": "CHAPA GALVANIZADA",
+          "estoqueDisp": 143.73,
+          "custoUnit": 10.53
+        },
+        "387": {
+          "codigo": "387",
+          "descricao": "CHAPA PRETA 1/4 2,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1095.0,
+          "custoUnit": 6.25
+        },
+        "389": {
+          "codigo": "389",
+          "descricao": "CHAPA PRETA 1/4 3,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1084.0,
+          "custoUnit": 6.25
+        },
+        "410": {
+          "codigo": "410",
+          "descricao": "CHAPA PRETA 16 2,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1001.0,
+          "custoUnit": 6.6
+        },
+        "411": {
+          "codigo": "411",
+          "descricao": "CHAPA PRETA 16 3,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 1068.0,
+          "custoUnit": 6.6
+        },
+        "2238": {
+          "codigo": "2238",
+          "descricao": "CHAPA PRETA 1/8 3,00X1,20",
+          "grupo": "CHAPA PRETA",
+          "estoqueDisp": 2149.6,
+          "custoUnit": 6.36
+        },
+        "457": {
+          "codigo": "457",
+          "descricao": "CHAPA XADREZ 3/16 2,00X1,20",
+          "grupo": "CHAPA XADREZ",
+          "estoqueDisp": 1204.36,
+          "custoUnit": 6.36
+        },
+        "485": {
+          "codigo": "485",
+          "descricao": "CONCERTINA SB DUPLA GALV 300MM",
+          "grupo": "TELAS AGROPECUARIAS",
+          "estoqueDisp": 76.0,
+          "custoUnit": 68.15
+        },
+        "492": {
+          "codigo": "492",
+          "descricao": "CONCERTINA SB SIMPLES GALV 300MM",
+          "grupo": "TELAS AGROPECUARIAS",
+          "estoqueDisp": 108.0,
+          "custoUnit": 49.56
+        },
+        "2311": {
+          "codigo": "2311",
+          "descricao": "CUMEEIRA GALVALUME TRAP 0,40MM 1,00X1,00",
+          "grupo": "TELHAS",
+          "estoqueDisp": 46.0,
+          "custoUnit": 32.0
+        },
+        "576": {
+          "codigo": "576",
+          "descricao": "CUMEEIRA GALVALUME TRAP 0,43MM 1,00X0,80",
+          "grupo": "TELHAS",
+          "estoqueDisp": 4.0,
+          "custoUnit": 36.21
+        },
+        "984": {
+          "codigo": "984",
+          "descricao": "LAMBRI OND GRANDE 2.00X1.06X0,80MM GALV",
+          "grupo": "CHAPA ONDULADA",
+          "estoqueDisp": 15.0,
+          "custoUnit": 6.98
+        },
+        "1068": {
+          "codigo": "1068",
+          "descricao": "MALHA POP PESADA (Q-138)",
+          "grupo": "TELAS",
+          "estoqueDisp": 25.0,
+          "custoUnit": 62.6
+        },
+        "2326": {
+          "codigo": "2326",
+          "descricao": "METALON GALV PRE PINTADO 30 X 20 X 18 (1.25)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2205.0,
+          "custoUnit": 7.82
+        },
+        "1207": {
+          "codigo": "1207",
+          "descricao": "METALON GALV 80 X 80 X 16 (1.55)",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 23.69,
+          "custoUnit": 8.2
+        },
+        "1082": {
+          "codigo": "1082",
+          "descricao": "METALON 20 X 20 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 262.96,
+          "custoUnit": 7.09
+        },
+        "1087": {
+          "codigo": "1087",
+          "descricao": "METALON 20 X 30 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1372.8,
+          "custoUnit": 7.09
+        },
+        "1093": {
+          "codigo": "1093",
+          "descricao": "METALON 20 X 40 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 73.92,
+          "custoUnit": 7.08
+        },
+        "1099": {
+          "codigo": "1099",
+          "descricao": "METALON 30 X 30 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 16.24,
+          "custoUnit": 7.1
+        },
+        "1100": {
+          "codigo": "1100",
+          "descricao": "METALON 30 X 30 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 288.2,
+          "custoUnit": 6.93
+        },
+        "1106": {
+          "codigo": "1106",
+          "descricao": "METALON 30 X 50 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1668.15,
+          "custoUnit": 8.02
+        },
+        "1108": {
+          "codigo": "1108",
+          "descricao": "METALON 40 X 30 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 1491.12,
+          "custoUnit": 6.9
+        },
+        "1122": {
+          "codigo": "1122",
+          "descricao": "METALON 50 X 50 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 58.29,
+          "custoUnit": 6.57
+        },
+        "2197": {
+          "codigo": "2197",
+          "descricao": "METALON 80 X 40 X 18",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 972.0,
+          "custoUnit": 6.5
+        },
+        "1273": {
+          "codigo": "1273",
+          "descricao": "PERFIL I A572 W250X22.3X12M",
+          "grupo": "PERFIL W",
+          "estoqueDisp": 267.6,
+          "custoUnit": 7.95
+        },
+        "1352": {
+          "codigo": "1352",
+          "descricao": "PERFIL U ENRIJECIDO 100X50X3,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 3754.94,
+          "custoUnit": 6.65
+        },
+        "1354": {
+          "codigo": "1354",
+          "descricao": "PERFIL U ENRIJECIDO 127X50X2,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 1382.0,
+          "custoUnit": 6.05
+        },
+        "1356": {
+          "codigo": "1356",
+          "descricao": "PERFIL U ENRIJECIDO 127X50X2,65",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 3776.72,
+          "custoUnit": 6.65
+        },
+        "1357": {
+          "codigo": "1357",
+          "descricao": "PERFIL U ENRIJECIDO 127X50X3,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 3247.75,
+          "custoUnit": 6.57
+        },
+        "1379": {
+          "codigo": "1379",
+          "descricao": "PERFIL U SIMPLES 127X50X2,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 20.5,
+          "custoUnit": 6.73
+        },
+        "1383": {
+          "codigo": "1383",
+          "descricao": "PERFIL U SIMPLES 150X50X2,00",
+          "grupo": "PERFIL DE CHAPA DOBRADA",
+          "estoqueDisp": 2000.24,
+          "custoUnit": 6.82
+        },
+        "1497": {
+          "codigo": "1497",
+          "descricao": "SAPATA PRONTA 10.0MM 80X80 MALHA (15X15)",
+          "grupo": "SAPATAS",
+          "estoqueDisp": 10.0,
+          "custoUnit": 23.36
+        },
+        "2189": {
+          "codigo": "2189",
+          "descricao": "TELHA GALVALUME OND 0,43MM 6,50X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 8.0,
+          "custoUnit": 150.0
+        },
+        "2194": {
+          "codigo": "2194",
+          "descricao": "TELHA GALVALUME TRAP 0,40MM 4,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 10.0,
+          "custoUnit": 114.08
+        },
+        "1617": {
+          "codigo": "1617",
+          "descricao": "TELHA GALVALUME TRAP 0,40MM 6,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 207.0,
+          "custoUnit": 180.0
+        },
+        "2224": {
+          "codigo": "2224",
+          "descricao": "TELHA GALVALUME TRAP 0,43MM 4,50X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 2.0,
+          "custoUnit": 136.67
+        },
+        "1620": {
+          "codigo": "1620",
+          "descricao": "TELHA GALVALUME TRAP 0,43MM 6,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 6.0,
+          "custoUnit": 219.0
+        },
+        "2340": {
+          "codigo": "2340",
+          "descricao": "TELHA GALVALUME TRAP 0,47MM 5,00X1,05",
+          "grupo": "TELHAS",
+          "estoqueDisp": 200.0,
+          "custoUnit": 150.0
+        },
+        "2164": {
+          "codigo": "2164",
+          "descricao": "TINTA PRIMER 3,6L ACAB CINZA CLARO ACETINADO",
+          "grupo": "TINTA",
+          "estoqueDisp": 6.0,
+          "custoUnit": 119.24
+        },
+        "2162": {
+          "codigo": "2162",
+          "descricao": "TINTA PRIMER 3,6L ACAB PRETO ACETINADO",
+          "grupo": "TINTA",
+          "estoqueDisp": 20.0,
+          "custoUnit": 119.24
+        },
+        "2157": {
+          "codigo": "2157",
+          "descricao": "TINTA 18L PRIMER CINZA ESCURO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 0.0,
+          "custoUnit": 171.82
+        },
+        "1983": {
+          "codigo": "1983",
+          "descricao": "TINTA 900ML GALVANITEX BRANCO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 10.0,
+          "custoUnit": 35.9
+        },
+        "2146": {
+          "codigo": "2146",
+          "descricao": "TUBO IND GALVANIZADO 5/8 X 0.95",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 517.5,
+          "custoUnit": 8.5
+        },
+        "1750": {
+          "codigo": "1750",
+          "descricao": "TUBO INDUSTRIAL 1.1 2 X 14",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 2178.0,
+          "custoUnit": 6.8
+        },
+        "1751": {
+          "codigo": "1751",
+          "descricao": "TUBO INDUSTRIAL 1.1 2 X 16",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 373.52,
+          "custoUnit": 6.55
+        },
+        "1791": {
+          "codigo": "1791",
+          "descricao": "TUBO INDUSTRIAL 5/8 X 20",
+          "grupo": "TUBO INDUSTRIAL",
+          "estoqueDisp": 401.74,
+          "custoUnit": 7.41
+        },
+        "1986": {
+          "codigo": "1986",
+          "descricao": "TINTA 3.6L GALVANITEX PRETO FOSCO",
+          "grupo": "TINTA",
+          "estoqueDisp": 19.0,
+          "custoUnit": 80.14
+        },
+        "754": {
+          "codigo": "754",
+          "descricao": "ELETRODO 6013 - 2.50MM STAR",
+          "grupo": "SOLDAS",
+          "estoqueDisp": 0.0,
+          "custoUnit": 11.21
+        }
+      };
+
+    function toInputDate(offsetDays = 0) {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() + offsetDays);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function parseLocalDate(dateStr) {
+      if (!dateStr) return null;
+      const parts = dateStr.split("-").map(Number);
+      if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+      return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+    }
+
+    function formatDatePtBr(dateStr) {
+      const d = parseLocalDate(dateStr);
+      if (!d) return "—";
+      return d.toLocaleDateString("pt-BR");
+    }
+
+    function formatBRL(value) {
+      const num = Number.isFinite(value) ? value : 0;
+      return num.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    }
+
+    function formatNumber(value, decimals = 0) {
+      const num = Number.isFinite(value) ? value : 0;
+      return num.toLocaleString("pt-BR", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    }
+
+    function parsePtNumber(raw) {
+      if (typeof raw === "number") return Number.isFinite(raw) ? raw : 0;
+      if (!raw) return 0;
+      const cleaned = String(raw)
+        .replace(/R\$/gi, "")
+        .replace(/\s+/g, "")
+        .trim();
+      if (!cleaned) return 0;
+      if (cleaned.includes(",") && cleaned.includes(".")) {
+        const val = Number(cleaned.replace(/\./g, "").replace(",", "."));
+        return Number.isFinite(val) ? val : 0;
+      }
+      if (cleaned.includes(",")) {
+        const val = Number(cleaned.replace(",", "."));
+        return Number.isFinite(val) ? val : 0;
+      }
+      const val = Number(cleaned);
+      return Number.isFinite(val) ? val : 0;
+    }
+
+    function normalizarItemEstoque(raw) {
+      if (!raw || typeof raw !== "object") return null;
+      const codigo = String(
+        raw.codigo ?? raw.CODPROD ?? raw.sku ?? raw.id ?? ""
+      ).trim();
+      if (!codigo) return null;
+
+      return {
+        codigo,
+        descricao: String(
+          raw.descricao ?? raw.produto ?? raw.DESCRPROD ?? raw.nome ?? `SKU ${codigo}`
+        ).trim(),
+        grupo: String(
+          raw.grupo ?? raw.GRUPOPROD ?? raw.categoria ?? "SANKHYA"
+        ).trim(),
+        custoUnit: parsePtNumber(
+          raw.custoUnit ??
+            raw.unidadeCusto ??
+            raw.custo_unitario ??
+            raw.custo ??
+            raw.vlrCusto ??
+            0
+        ),
+        estoqueDisp: parsePtNumber(
+          raw.estoqueDisp ??
+            raw.qtdDisponivel ??
+            raw.qtd_disponivel ??
+            raw.estoque ??
+            raw.saldo ??
+            0
+        ),
+      };
+    }
+
+    function extrairArrayDePayload(data) {
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === "object") {
+        if (Array.isArray(data.itens)) return data.itens;
+        if (Array.isArray(data.items)) return data.items;
+        if (Array.isArray(data.produtos)) return data.produtos;
+        if (Array.isArray(data.estoque)) return data.estoque;
+        if (Array.isArray(data.dados)) return data.dados;
+      }
+      return [];
+    }
+
+    function calcPrecoFromMarkup(custo, markupPct) {
+      const m = Number.isFinite(markupPct) ? markupPct : 0;
+      return Math.max(0, Number((custo * (1 + m / 100)).toFixed(2)));
+    }
+
+    function calcMarkupFromPreco(custo, preco) {
+      if (!custo || custo <= 0) return 0;
+      return Number((((preco - custo) / custo) * 100).toFixed(2));
+    }
+
+    function calcMargemPct(preco, custo) {
+      if (!preco || preco <= 0) return 0;
+      return Number((((preco - custo) / preco) * 100).toFixed(1));
+    }
+
+    function criarItemPromocao(skuObj, markupInicial = 25, qtdOferta = 10) {
+      const custo = Number(skuObj.custoUnit) || 0;
+      const precoOferta = calcPrecoFromMarkup(custo, markupInicial);
+      return {
+        codigo: String(skuObj.codigo).trim(),
+        descricao: String(skuObj.descricao || "").trim(),
+        grupo: String(skuObj.grupo || "GERAL").trim(),
+        estoqueDisp: Number(skuObj.estoqueDisp) || 0,
+        custoUnit: custo,
+        qtdOferta: Math.max(0, Number(qtdOferta) || 0),
+        markupPct: Number(markupInicial) || 0,
+        precoOferta,
+      };
+    }
+
+    function parseTextoImportacaoSankhya(texto) {
+      const linhas = String(texto || "")
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      if (linhas.length === 0) return [];
+
+      const sep = linhas[0].includes("\t")
+        ? "\t"
+        : linhas[0].includes(";")
+        ? ";"
+        : ",";
+
+      const resultados = [];
+
+      linhas.forEach((linha, idx) => {
+        const cols = linha.split(sep).map((c) => c.trim());
+        if (cols.length < 2) return;
+
+        const primeiroLower = cols[0].toLowerCase();
+        if (
+          idx === 0 &&
+          (primeiroLower.includes("codigo") ||
+            primeiroLower.includes("código") ||
+            primeiroLower.includes("sku") ||
+            primeiroLower === "#")
+        ) {
+          return;
+        }
+
+        const temColunaSeq =
+          cols.length >= 6 &&
+          /^\d+$/.test(cols[0]) &&
+          /^\d+$/.test(cols[1]);
+
+        const codigoIdx = temColunaSeq && cols.length >= 7 ? 1 : 0;
+        const codigo = cols[codigoIdx]?.trim();
+        if (!codigo) return;
+
+        const descricao = cols[codigoIdx + 1]?.trim() || `Item SKU ${codigo}`;
+        const grupo = cols[codigoIdx + 2]?.trim() || "SANKHYA";
+
+        const numeros = cols.slice(codigoIdx + 3).map((c) => parsePtNumber(c));
+
+        const custoUnit =
+          numeros.length >= 2 ? numeros[numeros.length - 2] : numeros[0] || 0;
+        const estoqueDisp =
+          numeros.length >= 1 ? numeros[numeros.length - 1] : 0;
+
+        resultados.push({
+          codigo,
+          descricao,
+          grupo,
+          custoUnit,
+          estoqueDisp,
+        });
+      });
+
+      return resultados;
+    }
+
+    function gerarVendasExemplo() {
+      const hoje = new Date();
+      hoje.setHours(12, 0, 0, 0);
+
+      const makeSale = (daysAgo, codigo, qtd, precoPraticado) => {
+        const dt = new Date(hoje);
+        dt.setDate(dt.getDate() - daysAgo);
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
+        const day = String(dt.getDate()).padStart(2, "0");
+        return {
+          id: `${codigo}-${daysAgo}-${Math.random().toString(36).slice(2, 7)}`,
+          data: `${y}-${m}-${day}`,
+          codigo: String(codigo),
+          qtd,
+          precoPraticado,
+        };
+      };
+
+      return [
+        makeSale(5, "481", 45, 61.7),
+        makeSale(4, "481", 38, 61.7),
+        makeSale(3, "481", 52, 61.7),
+        makeSale(2, "481", 40, 61.7),
+        makeSale(1, "481", 49, 61.7),
+        makeSale(0, "481", 36, 61.7),
+        makeSale(5, "1924", 420, 5.69),
+        makeSale(4, "1924", 510, 5.69),
+        makeSale(3, "1924", 390, 5.69),
+        makeSale(2, "1924", 460, 5.69),
+        makeSale(1, "1924", 540, 5.69),
+        makeSale(0, "1924", 380, 5.69),
+        makeSale(4, "479", 12, 94.25),
+        makeSale(2, "479", 15, 94.25),
+        makeSale(0, "479", 9, 94.25),
+      ];
+    }
+
+    function criarCampanhasIniciais(catalogoBase) {
+      const itensIniciais = [
+        criarItemPromocao(catalogoBase["481"], 25, 400),
+        criarItemPromocao(catalogoBase["1924"], 25, 4500),
+        criarItemPromocao(catalogoBase["479"], 25, 80),
+      ];
+
+      return [
+        {
+          id: "camp-queima-sankhya",
+          nome: "Queima de Estoque — Sankhya",
+          markupInicial: 25,
+          dataInicio: toInputDate(-5),
+          dataFim: toInputDate(4),
+          atualizadoEm: new Date().toISOString(),
+          itens: itensIniciais,
+        },
+        {
+          id: "camp-excesso-colunas",
+          nome: "Liquidação Excesso — Colunas",
+          markupInicial: 20,
+          dataInicio: toInputDate(3),
+          dataFim: toInputDate(10),
+          atualizadoEm: new Date().toISOString(),
+          itens: [
+            criarItemPromocao(catalogoBase["481"], 20, 300),
+            criarItemPromocao(catalogoBase["479"], 20, 70),
+          ],
+        },
+      ];
+    }
+
+    function getStatusCampanha(dataInicio, dataFim) {
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      const inicio = parseLocalDate(dataInicio);
+      const fim = parseLocalDate(dataFim);
+
+      if (!inicio) {
+        return {
+          key: "sem_data",
+          label: "Sem Data Início",
+          badgeClass: "bg-slate-800 text-slate-300 border-slate-700",
+          iniciada: false,
+        };
+      }
+
+      if (hoje < inicio) {
+        return {
+          key: "agendada",
+          label: "Agendada",
+          badgeClass: "bg-sky-950/80 text-sky-300 border-sky-700/60",
+          iniciada: false,
+        };
+      }
+
+      if (fim && hoje > fim) {
+        return {
+          key: "encerrada",
+          label: "Encerrada",
+          badgeClass: "bg-amber-950/80 text-amber-300 border-amber-700/60",
+          iniciada: true,
+        };
+      }
+
+      return {
+        key: "ativa",
+        label: "Em Andamento",
+        badgeClass: "bg-emerald-950/80 text-emerald-300 border-emerald-600/60",
+        iniciada: true,
+      };
+    }
+
+    function getDiasDecorridos(dataInicio, dataFim) {
+      const inicio = parseLocalDate(dataInicio);
+      if (!inicio) return 0;
+
+      const hoje = new Date();
+      hoje.setHours(0, 0, 0, 0);
+      if (hoje < inicio) return 0;
+
+      const fim = parseLocalDate(dataFim);
+      const limite = fim && hoje > fim ? fim : hoje;
+      const diffMs = limite.getTime() - inicio.getTime();
+      return Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1);
+    }
+
+    function getDiasTotaisCampanha(dataInicio, dataFim) {
+      const inicio = parseLocalDate(dataInicio);
+      const fim = parseLocalDate(dataFim);
+      if (!inicio || !fim || fim < inicio) return null;
+      const diffMs = fim.getTime() - inicio.getTime();
+      return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    function exportarCsvPromocao({
+      nomePromocao,
+      dataInicio,
+      dataFim,
+      linhasPerformance,
+      iniciada,
+    }) {
+      const headers = [
+        "Campanha",
+        "Data Inicio",
+        "Data Fim",
+        "Codigo SKU",
+        "Descricao",
+        "Grupo",
+        "Estoque Disp.",
+        "Custo Unit. (R$)",
+        "Qtd Oferta",
+        "Markup (%)",
+        "Preco Oferta (R$)",
+        "Margem Oferta (%)",
+        "Total Oferta (R$)",
+        ...(iniciada
+          ? [
+              "Qtd Vendida",
+              "% Atingido",
+              "Saldo Restante",
+              "Media Venda/Dia",
+              "Receita Realizada (R$)",
+              "Ritmo",
+            ]
+          : []),
+      ];
+
+      const escapeCsv = (val) => {
+        const str = String(val ?? "");
+        if (str.includes(";") || str.includes('"') || str.includes("\\n")) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const rows = linhasPerformance.map((item) => [
+        nomePromocao || "Promocao sem nome",
+        dataInicio || "",
+        dataFim || "",
+        item.codigo,
+        item.descricao,
+        item.grupo,
+        item.estoqueDisp,
+        item.custoUnit.toFixed(2).replace(".", ","),
+        item.qtdOferta,
+        item.markupPct.toFixed(2).replace(".", ","),
+        item.precoOferta.toFixed(2).replace(".", ","),
+        item.margemPct.toFixed(1).replace(".", ","),
+        item.totalOferta.toFixed(2).replace(".", ","),
+        ...(iniciada
+          ? [
+              item.qtdVendida,
+              item.pctAtingido.toFixed(1).replace(".", ","),
+              item.saldoRestante,
+              item.mediaDia.toFixed(2).replace(".", ","),
+              item.receitaRealizada.toFixed(2).replace(".", ","),
+              item.ritmoLabel,
+            ]
+          : []),
+      ]);
+
+      const csvContent =
+        "\uFEFF" +
+        [headers, ...rows]
+          .map((row) => row.map(escapeCsv).join(";"))
+          .join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const slug = (nomePromocao || "promocao")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      link.href = url;
+      link.setAttribute("download", `${slug || "promocao"}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    function PromocoesDashboard() {
+      const [catalogoSankhya, setCatalogoSankhya] = useState(() => {
+        try {
+          const saved = localStorage.getItem(CATALOG_STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+              return parsed;
+            }
+          }
+        } catch {
+          // ignora erro de storage
+        }
+        return CATALOGO_SANKHYA_INICIAL;
+      });
+
+      const [ultimaSincronizacao, setUltimaSincronizacao] = useState(() => {
+        try {
+          const allStockRaw = localStorage.getItem(ALL_STOCK_PAYLOAD_KEY);
+          if (allStockRaw) {
+            const parsed = JSON.parse(allStockRaw);
+            if (parsed && parsed.atualizadoEm) return parsed.atualizadoEm;
+          }
+        } catch {
+          // ignora
+        }
+        return null;
+      });
+
+      const [syncUrl, setSyncUrl] = useState(() => {
+        try {
+          return localStorage.getItem(SYNC_URL_STORAGE_KEY) || "";
+        } catch {
+          return "";
+        }
+      });
+
+      const [campanhas, setCampanhas] = useState(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch {
+          // ignora erro de storage
+        }
+        return criarCampanhasIniciais(catalogoSankhya);
+      });
+
+      const [vendas, setVendas] = useState(() => {
+        try {
+          const saved = localStorage.getItem(SALES_LOG_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch {
+          // ignora erro de storage
+        }
+        return gerarVendasExemplo();
+      });
+
+      const [campanhaAtivaId, setCampanhaAtivaId] = useState(
+        () => campanhas[0]?.id || null
+      );
+
+      const [nomePromocao, setNomePromocao] = useState(
+        () => campanhas[0]?.nome || "Queima de Estoque — Sankhya"
+      );
+      const [markupInicial, setMarkupInicial] = useState(
+        () => campanhas[0]?.markupInicial ?? 25
+      );
+      const [dataInicio, setDataInicio] = useState(
+        () => campanhas[0]?.dataInicio || toInputDate(-5)
+      );
+      const [dataFim, setDataFim] = useState(
+        () => campanhas[0]?.dataFim || toInputDate(4)
+      );
+      const [itens, setItens] = useState(() => campanhas[0]?.itens || []);
+
+      const [skuInput, setSkuInput] = useState("");
+      const [feedback, setFeedback] = useState(null);
+      const [filtroGrupo, setFiltroGrupo] = useState("TODOS");
+      const [somenteComSaida, setSomenteComSaida] = useState(false);
+
+      const [mostrarImportador, setMostrarImportador] = useState(false);
+      const [textoImportacao, setTextoImportacao] = useState("481\tCOLUNA 8,0MM (7X14)\tCOLUNAS\t49,36\t478\n477\tCOLUNA 10,0MM (7X14)\tCOLUNAS\t73,72\t0\n1924\tVERGALHÃO CA-50 10.0MM 3/8 RETO (12M)\tVERGALHAO CA 50\t4,55\t13.942,7\n479\tCOLUNA 10,0MM (7X20)\tCOLUNAS\t75,40\t94");
+
+      const [simSku, setSimSku] = useState("481");
+      const [simQtd, setSimQtd] = useState(15);
+      const [simData, setSimData] = useState(() => toInputDate(0));
+
+      const skuInputRef = useRef(null);
+      const fileInputRef = useRef(null);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(catalogoSankhya));
+        } catch {
+          // ignora erro de storage
+        }
+      }, [catalogoSankhya]);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(campanhas));
+        } catch {
+          // ignora erro de storage
+        }
+      }, [campanhas]);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(SALES_LOG_KEY, JSON.stringify(vendas));
+        } catch {
+          // ignora erro de storage
+        }
+      }, [vendas]);
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(SYNC_URL_STORAGE_KEY, syncUrl);
+        } catch {
+          // ignora
+        }
+      }, [syncUrl]);
+
+      const sincronizarCatalogoCompleto = (listaRaw, origemLabel = "Dash Apuração de Estoque") => {
+        const arr = extrairArrayDePayload(listaRaw);
+        const normalizados = arr.map(normalizarItemEstoque).filter(Boolean);
+
+        if (normalizados.length === 0) return 0;
+
+        const novoCatalogo = {};
+        normalizados.forEach((n) => {
+          novoCatalogo[n.codigo] = n;
+        });
+
+        const agoraIso = new Date().toISOString();
+        setCatalogoSankhya(novoCatalogo);
+        setUltimaSincronizacao(agoraIso);
+
+        try {
+          localStorage.setItem(
+            ALL_STOCK_PAYLOAD_KEY,
+            JSON.stringify({
+              atualizadoEm: agoraIso,
+              origem: origemLabel,
+              itens: normalizados,
+            })
+          );
+        } catch {
+          // ignora
+        }
+
+        setItens((prev) =>
+          prev.map((item) => {
+            const atual = novoCatalogo[item.codigo];
+            if (!atual) return item;
+            return {
+              ...item,
+              descricao: atual.descricao,
+              grupo: atual.grupo,
+              estoqueDisp: atual.estoqueDisp,
+              custoUnit: atual.custoUnit,
+              precoOferta: calcPrecoFromMarkup(atual.custoUnit, item.markupPct),
+            };
+          })
+        );
+
+        if (normalizados[0]?.codigo) {
+          setSimSku(normalizados[0].codigo);
+        }
+
+        return normalizados.length;
+      };
+
+      useEffect(() => {
+        const aplicarPayloadExterno = (rawData, carregarNaPromocao = false, origem = "Dash Estoque") => {
+          if (!rawData) return;
+          const arr = extrairArrayDePayload(rawData);
+          const normalizados = arr.map(normalizarItemEstoque).filter(Boolean);
+          if (normalizados.length === 0) return;
+
+          const qtdSincronizada = sincronizarCatalogoCompleto(normalizados, origem);
+
+          if (carregarNaPromocao) {
+            const m = Number(markupInicial) || 25;
+            setItens(
+              normalizados.map((n) =>
+                criarItemPromocao(
+                  n,
+                  m,
+                  n.estoqueDisp > 0 ? Math.max(1, Math.round(n.estoqueDisp)) : 10
+                )
+              )
+            );
+            setFeedback({
+              type: "success",
+              text: `${qtdSincronizada} item(ns) sincronizado(s) do ${origem} e carregado(s) na promoção.`,
+            });
+          } else {
+            setFeedback({
+              type: "success",
+              text: `Catálogo sincronizado com ${qtdSincronizada} item(ns) completos do ${origem}.`,
+            });
+          }
+        };
+
+        try {
+          if (window.location.hash && window.location.hash.startsWith("#todos=")) {
+            const rawHash = decodeURIComponent(window.location.hash.slice(7));
+            aplicarPayloadExterno(JSON.parse(rawHash), false, "Hash URL (Todos os Itens)");
+          } else if (window.location.hash && window.location.hash.startsWith("#dados=")) {
+            const rawHash = decodeURIComponent(window.location.hash.slice(7));
+            aplicarPayloadExterno(JSON.parse(rawHash), true, "Excesso para Queima");
+          }
+
+          const allStockRaw = localStorage.getItem(ALL_STOCK_PAYLOAD_KEY);
+          if (allStockRaw) {
+            const parsedAll = JSON.parse(allStockRaw);
+            const arrAll = extrairArrayDePayload(parsedAll);
+            if (arrAll.length > 0) {
+              sincronizarCatalogoCompleto(
+                arrAll,
+                parsedAll.origem || "Dash Apuração de Estoque"
+              );
+            }
+          }
+
+          const bridgeRaw = localStorage.getItem(BRIDGE_PAYLOAD_KEY);
+          if (bridgeRaw) {
+            const parsedBridge = JSON.parse(bridgeRaw);
+            const arrBridge = extrairArrayDePayload(parsedBridge);
+            if (arrBridge.length > 0) {
+              aplicarPayloadExterno(arrBridge, true, "Excesso para Queima");
+              localStorage.removeItem(BRIDGE_PAYLOAD_KEY);
+            }
+          }
+        } catch {
+          // ignora erro de leitura inicial
+        }
+
+        const handleMessage = (event) => {
+          const msg = event.data;
+          if (!msg || typeof msg !== "object") return;
+          if (msg.tipo === "SYNC_ESTOQUE_COMPLETO" || msg.type === "SYNC_ESTOQUE_COMPLETO") {
+            const qtd = sincronizarCatalogoCompleto(
+              msg.itens || msg.dados || [],
+              msg.origem || "Dash Apuração de Estoque"
+            );
+            if (qtd > 0) {
+              setFeedback({
+                type: "success",
+                text: `Sincronização automática: ${qtd} item(ns) recebidos do Dash de Apuração de Estoque.`,
+              });
+            }
+          } else if (
+            msg.tipo === "ENVIAR_QUEIMA" ||
+            msg.type === "ENVIAR_QUEIMA" ||
+            msg.tipo === "CARREGAR_PROMOCAO"
+          ) {
+            aplicarPayloadExterno(
+              msg.itens || msg.dados || [],
+              true,
+              msg.origem || "Excesso para Queima"
+            );
+          }
+        };
+
+        const handleStorageEvent = (event) => {
+          if (event.key === ALL_STOCK_PAYLOAD_KEY && event.newValue) {
+            try {
+              const parsed = JSON.parse(event.newValue);
+              const qtd = sincronizarCatalogoCompleto(
+                extrairArrayDePayload(parsed),
+                parsed.origem || "Dash Apuração de Estoque"
+              );
+              if (qtd > 0) {
+                setFeedback({
+                  type: "success",
+                  text: `Lista completa atualizada: ${qtd} item(ns) do Dash de Apuração de Estoque.`,
+                });
+              }
+            } catch {
+              // ignora
+            }
+          } else if (event.key === BRIDGE_PAYLOAD_KEY && event.newValue) {
+            try {
+              const parsed = JSON.parse(event.newValue);
+              aplicarPayloadExterno(
+                extrairArrayDePayload(parsed),
+                true,
+                "Excesso para Queima"
+              );
+            } catch {
+              // ignora
+            }
+          }
+        };
+
+        window.addEventListener("message", handleMessage);
+        window.addEventListener("storage", handleStorageEvent);
+        return () => {
+          window.removeEventListener("message", handleMessage);
+          window.removeEventListener("storage", handleStorageEvent);
+        };
+      }, []);
+
+      const handleBuscarUrlSincronizacao = async (e) => {
+        if (e) e.preventDefault();
+        const urlLimpa = syncUrl.trim();
+        if (!urlLimpa) {
+          showNotice(
+            "error",
+            "Informe a URL JSON/API ou endpoint que expõe os itens do Dash de Apuração de Estoque."
+          );
+          return;
+        }
+        try {
+          const resp = await fetch(urlLimpa, { cache: "no-store" });
+          if (!resp.ok) {
+            showNotice("error", `Falha ao buscar URL (${resp.status}).`);
+            return;
+          }
+          const data = await resp.json();
+          const qtd = sincronizarCatalogoCompleto(data, "Endpoint de Estoque");
+          if (qtd > 0) {
+            showNotice(
+              "success",
+              `Sincronização concluída: ${qtd} item(ns) carregados no catálogo a partir da URL.`
+            );
+          } else {
+            showNotice(
+              "error",
+              "A resposta JSON não continha itens válidos com código/SKU."
+            );
+          }
+        } catch {
+          showNotice(
+            "error",
+            "Não foi possível acessar a URL (verifique CORS ou formato JSON)."
+          );
+        }
+      };
+
+      const showNotice = (type, text) => {
+        setFeedback({ type, text });
+      };
+
+      const aplicarListaImportada = (listaImportada, modoSubstituir = true) => {
+        if (!Array.isArray(listaImportada) || listaImportada.length === 0) {
+          showNotice(
+            "error",
+            "Nenhum item válido encontrado para importar. Verifique o formato (Código, Descrição, Grupo, Custo Unit., Estoque Disp.)."
+          );
+          return;
+        }
+
+        const normalizados = listaImportada
+          .map(normalizarItemEstoque)
+          .filter(Boolean);
+
+        if (normalizados.length === 0) {
+          showNotice("error", "Nenhum item válido encontrado após normalização.");
+          return;
+        }
+
+        const qtd = sincronizarCatalogoCompleto(
+          normalizados,
+          "Importação Manual / Arquivo"
+        );
+
+        const m = Number(markupInicial) || 0;
+        const novosItensPromo = normalizados.map((item) =>
+          criarItemPromocao(
+            item,
+            m,
+            item.estoqueDisp > 0 ? Math.max(1, Math.round(item.estoqueDisp)) : 10
+          )
+        );
+
+        if (modoSubstituir) {
+          setItens(novosItensPromo);
+        } else {
+          setItens((prev) => {
+            const mapaAtual = new Map(prev.map((p) => [p.codigo, p]));
+            novosItensPromo.forEach((ni) => {
+              mapaAtual.set(ni.codigo, ni);
+            });
+            return Array.from(mapaAtual.values());
+          });
+        }
+
+        setMostrarImportador(false);
+        showNotice(
+          "success",
+          `${qtd} item(ns) sincronizado(s) no catálogo e carregado(s) na promoção.`
+        );
+      };
+
+      const handleImportarTexto = (e) => {
+        e.preventDefault();
+        const parsed = parseTextoImportacaoSankhya(textoImportacao);
+        aplicarListaImportada(parsed, true);
+      };
+
+      const handleArquivoImportado = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const conteudo = String(ev.target?.result || "");
+          if (file.name.toLowerCase().endsWith(".json")) {
+            try {
+              const jsonData = JSON.parse(conteudo);
+              const arr = extrairArrayDePayload(jsonData);
+              aplicarListaImportada(arr, true);
+              return;
+            } catch {
+              showNotice("error", "Arquivo JSON inválido.");
+              return;
+            }
+          }
+          setTextoImportacao(conteudo);
+          const parsed = parseTextoImportacaoSankhya(conteudo);
+          aplicarListaImportada(parsed, true);
+        };
+        reader.readAsText(file, "UTF-8");
+        e.target.value = "";
+      };
+
+      const carregarCampanhaNoEditor = (camp) => {
+        if (!camp) return;
+        setCampanhaAtivaId(camp.id);
+        setNomePromocao(camp.nome || "");
+        setMarkupInicial(camp.markupInicial ?? 25);
+        setDataInicio(camp.dataInicio || "");
+        setDataFim(camp.dataFim || "");
+        setItens(Array.isArray(camp.itens) ? camp.itens : []);
+        setFeedback(null);
+      };
+
+      const handleNovaPromocao = () => {
+        setCampanhaAtivaId(null);
+        setNomePromocao("");
+        setMarkupInicial(25);
+        setDataInicio(toInputDate(0));
+        setDataFim(toInputDate(7));
+        setItens([]);
+        setFiltroGrupo("TODOS");
+        setSomenteComSaida(false);
+        showNotice(
+          "info",
+          "Nova promoção iniciada. Preencha o nome, datas, digite qualquer SKU sincronizado ou importe e clique em Salvar Promoção."
+        );
+        skuInputRef.current?.focus();
+      };
+
+      const handleSalvarPromocao = () => {
+        const nomeLimpo = nomePromocao.trim();
+        if (!nomeLimpo) {
+          showNotice("error", "Informe o Nome da Promoção / Campanha antes de salvar.");
+          return;
+        }
+        if (!dataInicio) {
+          showNotice("error", "Defina a Data de Início da promoção.");
+          return;
+        }
+        if (dataFim && dataFim < dataInicio) {
+          showNotice(
+            "error",
+            "A Data de Fim não pode ser anterior à Data de Início."
+          );
+          return;
+        }
+        if (itens.length === 0) {
+          showNotice(
+            "error",
+            "Adicione pelo menos 1 item (SKU) antes de salvar a promoção."
+          );
+          return;
+        }
+
+        const idAlvo =
+          campanhaAtivaId ||
+          `camp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+        const novaCampanha = {
+          id: idAlvo,
+          nome: nomeLimpo,
+          markupInicial: Number(markupInicial) || 0,
+          dataInicio,
+          dataFim,
+          atualizadoEm: new Date().toISOString(),
+          itens,
+        };
+
+        setCampanhas((prev) => {
+          const exists = prev.some((c) => c.id === idAlvo);
+          if (exists) {
+            return prev.map((c) => (c.id === idAlvo ? novaCampanha : c));
+          }
+          return [novaCampanha, ...prev];
+        });
+        setCampanhaAtivaId(idAlvo);
+        showNotice(
+          "success",
+          `Promoção "${nomeLimpo}" salva com sucesso (${itens.length} SKU${
+            itens.length > 1 ? "s" : ""
+          }).`
+        );
+      };
+
+      const handleExcluirCampanha = () => {
+        if (!campanhaAtivaId) return;
+        const alvo = campanhas.find((c) => c.id === campanhaAtivaId);
+        const restantes = campanhas.filter((c) => c.id !== campanhaAtivaId);
+        setCampanhas(restantes);
+
+        if (restantes.length > 0) {
+          carregarCampanhaNoEditor(restantes[0]);
+        } else {
+          setCampanhaAtivaId(null);
+          setNomePromocao("");
+          setItens([]);
+        }
+        showNotice(
+          "info",
+          `Campanha "${alvo?.nome || "selecionada"}" removida.`
+        );
+      };
+
+      const handleInserirSku = (e) => {
+        if (e) e.preventDefault();
+        const codigoLimpo = skuInput.trim();
+        if (!codigoLimpo) return;
+
+        const skuCatalogo = catalogoSankhya[codigoLimpo];
+        if (!skuCatalogo) {
+          showNotice(
+            "error",
+            `SKU "${codigoLimpo}" não encontrado na lista sincronizada do estoque (${Object.keys(
+              catalogoSankhya
+            ).length} itens disponíveis). Sincronize a lista completa do Dash de Apuração de Estoque ou use "Importar Sankhya".`
+          );
+          return;
+        }
+
+        const existente = itens.find((i) => i.codigo === skuCatalogo.codigo);
+        if (existente) {
+          setItens((prev) =>
+            prev.map((item) =>
+              item.codigo === skuCatalogo.codigo
+                ? { ...item, qtdOferta: item.qtdOferta + 1 }
+                : item
+            )
+          );
+          showNotice(
+            "success",
+            `SKU ${skuCatalogo.codigo} já estava na lista: quantidade ofertada incrementada para ${
+              existente.qtdOferta + 1
+            }.`
+          );
+        } else {
+          const novoItem = criarItemPromocao(
+            skuCatalogo,
+            Number(markupInicial) || 0,
+            skuCatalogo.estoqueDisp > 0
+              ? Math.min(50, Math.round(skuCatalogo.estoqueDisp))
+              : 10
+          );
+          setItens((prev) => [...prev, novoItem]);
+          showNotice(
+            "success",
+            `SKU ${skuCatalogo.codigo} (${skuCatalogo.descricao}) adicionado à promoção.`
+          );
+        }
+
+        setSkuInput("");
+        skuInputRef.current?.focus();
+      };
+
+      const handleAplicarMarkupEmTodos = () => {
+        const m = Number(markupInicial) || 0;
+        setItens((prev) =>
+          prev.map((item) => ({
+            ...item,
+            markupPct: m,
+            precoOferta: calcPrecoFromMarkup(item.custoUnit, m),
+          }))
+        );
+        showNotice(
+          "info",
+          `Markup de ${m}% reaplicado em todos os ${itens.length} itens da lista.`
+        );
+      };
+
+      const handleAtualizarQtdOferta = (codigo, novaQtd) => {
+        const qtd = Math.max(0, Number(novaQtd) || 0);
+        setItens((prev) =>
+          prev.map((item) => (item.codigo === codigo ? { ...item, qtdOferta: qtd } : item))
+        );
+      };
+
+      const handleAtualizarMarkupItem = (codigo, novoMarkup) => {
+        const m = Number(novoMarkup);
+        const markupVal = Number.isFinite(m) ? m : 0;
+        setItens((prev) =>
+          prev.map((item) =>
+            item.codigo === codigo
+              ? {
+                  ...item,
+                  markupPct: markupVal,
+                  precoOferta: calcPrecoFromMarkup(item.custoUnit, markupVal),
+                }
+              : item
+          )
+        );
+      };
+
+      const handleAtualizarPrecoOferta = (codigo, novoPreco) => {
+        const p = Number(novoPreco);
+        const precoVal = Number.isFinite(p) ? Math.max(0, p) : 0;
+        setItens((prev) =>
+          prev.map((item) =>
+            item.codigo === codigo
+              ? {
+                  ...item,
+                  precoOferta: precoVal,
+                  markupPct: calcMarkupFromPreco(item.custoUnit, precoVal),
+                }
+              : item
+          )
+        );
+      };
+
+      const handleRemoverItem = (codigo) => {
+        setItens((prev) => prev.filter((item) => item.codigo !== codigo));
+      };
+
+      const handleLimparLista = () => {
+        setItens([]);
+        showNotice("info", "Lista de itens da promoção limpa.");
+      };
+
+      const handleRegistrarVendaSimulada = (e) => {
+        e.preventDefault();
+        const qtd = Math.max(1, Number(simQtd) || 1);
+        const skuCatalogo = catalogoSankhya[simSku];
+        if (!skuCatalogo || !simData) return;
+
+        const itemEmPromocao = itens.find((i) => i.codigo === simSku);
+        const precoPraticado = itemEmPromocao
+          ? itemEmPromocao.precoOferta
+          : calcPrecoFromMarkup(skuCatalogo.custoUnit, 25);
+
+        const novaVenda = {
+          id: `sale-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          data: simData,
+          codigo: simSku,
+          qtd,
+          precoPraticado,
+        };
+
+        setVendas((prev) => [novaVenda, ...prev]);
+        showNotice(
+          "success",
+          `Venda registrada: ${qtd} un. do SKU ${simSku} em ${formatDatePtBr(
+            simData
+          )} a ${formatBRL(precoPraticado)}.`
+        );
+      };
+
+      const statusCampanha = useMemo(
+        () => getStatusCampanha(dataInicio, dataFim),
+        [dataInicio, dataFim]
+      );
+
+      const diasDecorridos = useMemo(
+        () => getDiasDecorridos(dataInicio, dataFim),
+        [dataInicio, dataFim]
+      );
+
+      const diasTotais = useMemo(
+        () => getDiasTotaisCampanha(dataInicio, dataFim),
+        [dataInicio, dataFim]
+      );
+
+      const vendasNoPeriodo = useMemo(() => {
+        if (!statusCampanha.iniciada || !dataInicio) return [];
+        const inicio = parseLocalDate(dataInicio);
+        const fim = parseLocalDate(dataFim);
+        const hoje = new Date();
+        hoje.setHours(23, 59, 59, 999);
+        const limiteSuperior = fim
+          ? new Date(fim.getFullYear(), fim.getMonth(), fim.getDate(), 23, 59, 59, 999)
+          : hoje;
+
+        return vendas.filter((v) => {
+          const dt = parseLocalDate(v.data);
+          if (!dt || !inicio) return false;
+          return dt >= inicio && dt <= limiteSuperior;
+        });
+      }, [vendas, statusCampanha.iniciada, dataInicio, dataFim]);
+
+      const linhasPerformance = useMemo(() => {
+        return itens.map((item) => {
+          const totalOferta = item.qtdOferta * item.precoOferta;
+          const custoTotalItem = item.qtdOferta * item.custoUnit;
+          const margemPct = calcMargemPct(item.precoOferta, item.custoUnit);
+
+          const vendasSku = statusCampanha.iniciada
+            ? vendasNoPeriodo.filter((v) => v.codigo === item.codigo)
+            : [];
+
+          const qtdVendida = vendasSku.reduce(
+            (acc, v) => acc + (Number(v.qtd) || 0),
+            0
+          );
+          const receitaRealizada = vendasSku.reduce(
+            (acc, v) =>
+              acc + (Number(v.qtd) || 0) * (Number(v.precoPraticado) || item.precoOferta),
+            0
+          );
+          const custoRealizado = qtdVendida * item.custoUnit;
+          const lucroRealizado = receitaRealizada - custoRealizado;
+          const margemRealizadaPct =
+            receitaRealizada > 0
+              ? Number(
+                  (((receitaRealizada - custoRealizado) / receitaRealizada) * 100).toFixed(
+                    1
+                  )
+                )
+              : 0;
+
+          const pctAtingido =
+            item.qtdOferta > 0
+              ? Number(((qtdVendida / item.qtdOferta) * 100).toFixed(1))
+              : 0;
+          const saldoRestante = Math.max(0, item.qtdOferta - qtdVendida);
+          const mediaDia =
+            diasDecorridos > 0 ? Number((qtdVendida / diasDecorridos).toFixed(2)) : 0;
+
+          const ritmoEsperadoDia =
+            diasTotais && diasTotais > 0 && item.qtdOferta > 0
+              ? item.qtdOferta / diasTotais
+              : 0.5;
+
+          let ritmoKey = "sem_saida";
+          let ritmoLabel = "Sem saída";
+          let ritmoClass = "bg-slate-800 text-slate-400 border-slate-700";
+
+          if (qtdVendida > 0) {
+            if (mediaDia >= ritmoEsperadoDia * 1.15) {
+              ritmoKey = "acelerado";
+              ritmoLabel = "Acelerado";
+              ritmoClass = "bg-emerald-950/80 text-emerald-300 border-emerald-700/60";
+            } else if (mediaDia >= ritmoEsperadoDia * 0.65) {
+              ritmoKey = "no_ritmo";
+              ritmoLabel = "No ritmo";
+              ritmoClass = "bg-sky-950/80 text-sky-300 border-sky-700/60";
+            } else {
+              ritmoKey = "lento";
+              ritmoLabel = "Lento";
+              ritmoClass = "bg-amber-950/80 text-amber-300 border-amber-700/60";
+            }
+          }
+
+          return {
+            ...item,
+            totalOferta,
+            custoTotalItem,
+            margemPct,
+            qtdVendida,
+            pctAtingido,
+            saldoRestante,
+            mediaDia,
+            receitaRealizada,
+            lucroRealizado,
+            margemRealizadaPct,
+            ritmoKey,
+            ritmoLabel,
+            ritmoClass,
+          };
+        });
+      }, [itens, statusCampanha.iniciada, vendasNoPeriodo, diasDecorridos, diasTotais]);
+
+      const kpisLote = useMemo(() => {
+        const totalSkus = itens.length;
+        const totalUnidadesOfertadas = itens.reduce(
+          (acc, i) => acc + (Number(i.qtdOferta) || 0),
+          0
+        );
+        const custoTotalLote = itens.reduce(
+          (acc, i) => acc + (Number(i.qtdOferta) || 0) * (Number(i.custoUnit) || 0),
+          0
+        );
+        const receitaPotencial = itens.reduce(
+          (acc, i) => acc + (Number(i.qtdOferta) || 0) * (Number(i.precoOferta) || 0),
+          0
+        );
+        const lucroBrutoPotencial = receitaPotencial - custoTotalLote;
+        const margemMediaPotencial =
+          receitaPotencial > 0
+            ? Number(((lucroBrutoPotencial / receitaPotencial) * 100).toFixed(1))
+            : 0;
+
+        return {
+          totalSkus,
+          totalUnidadesOfertadas,
+          custoTotalLote,
+          receitaPotencial,
+          lucroBrutoPotencial,
+          margemMediaPotencial,
+        };
+      }, [itens]);
+
+      const kpisSaida = useMemo(() => {
+        const unidadesVendidas = linhasPerformance.reduce(
+          (acc, l) => acc + l.qtdVendida,
+          0
+        );
+        const pctEsgotamento =
+          kpisLote.totalUnidadesOfertadas > 0
+            ? Number(
+                ((unidadesVendidas / kpisLote.totalUnidadesOfertadas) * 100).toFixed(1)
+              )
+            : 0;
+        const saldoTotalRestante = Math.max(
+          0,
+          kpisLote.totalUnidadesOfertadas - unidadesVendidas
+        );
+        const receitaRealizada = linhasPerformance.reduce(
+          (acc, l) => acc + l.receitaRealizada,
+          0
+        );
+        const lucroRealizado = linhasPerformance.reduce(
+          (acc, l) => acc + l.lucroRealizado,
+          0
+        );
+        const margemRealizada =
+          receitaRealizada > 0
+            ? Number(((lucroRealizado / receitaRealizada) * 100).toFixed(1))
+            : 0;
+        const ritmoMedioDia =
+          diasDecorridos > 0
+            ? Number((unidadesVendidas / diasDecorridos).toFixed(1))
+            : 0;
+
+        return {
+          unidadesVendidas,
+          pctEsgotamento,
+          saldoTotalRestante,
+          receitaRealizada,
+          lucroRealizado,
+          margemRealizada,
+          ritmoMedioDia,
+        };
+      }, [linhasPerformance, kpisLote.totalUnidadesOfertadas, diasDecorridos]);
+
+      const serieDiariaSaida = useMemo(() => {
+        if (!statusCampanha.iniciada || !dataInicio) return [];
+        const inicio = parseLocalDate(dataInicio);
+        if (!inicio) return [];
+
+        const skusPromocaoSet = new Set(itens.map((i) => i.codigo));
+        const mapaDia = new Map();
+
+        for (let i = 0; i < diasDecorridos; i++) {
+          const d = new Date(inicio);
+          d.setDate(d.getDate() + i);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          const key = `${y}-${m}-${day}`;
+          mapaDia.set(key, {
+            data: key,
+            label: `${day}/${m}`,
+            unidades: 0,
+            receita: 0,
+          });
+        }
+
+        vendasNoPeriodo.forEach((v) => {
+          if (!skusPromocaoSet.has(v.codigo)) return;
+          const bucket = mapaDia.get(v.data);
+          if (bucket) {
+            const qtd = Number(v.qtd) || 0;
+            const preco = Number(v.precoPraticado) || 0;
+            bucket.unidades += qtd;
+            bucket.receita += qtd * preco;
+          }
+        });
+
+        const lista = Array.from(mapaDia.values());
+        const maxUnidades = Math.max(1, ...lista.map((x) => x.unidades));
+        return lista.map((x) => ({
+          ...x,
+          alturaPct: Math.max(8, Math.round((x.unidades / maxUnidades) * 100)),
+        }));
+      }, [statusCampanha.iniciada, dataInicio, itens, diasDecorridos, vendasNoPeriodo]);
+
+      const gruposDisponiveis = useMemo(() => {
+        const set = new Set(itens.map((i) => i.grupo).filter(Boolean));
+        return ["TODOS", ...Array.from(set)];
+      }, [itens]);
+
+      const itensFiltrados = useMemo(() => {
+        return linhasPerformance.filter((item) => {
+          if (filtroGrupo !== "TODOS" && item.grupo !== filtroGrupo) return false;
+          if (somenteComSaida && item.qtdVendida <= 0) return false;
+          return true;
+        });
+      }, [linhasPerformance, filtroGrupo, somenteComSaida]);
+
+      const codigosCatalogo = useMemo(
+        () => Object.keys(catalogoSankhya),
+        [catalogoSankhya]
+      );
+
+      return (
+        <div className="min-h-screen bg-[#070b14] text-slate-100 p-4 md:p-6">
+          <div className="max-w-7xl mx-auto space-y-5">
+            <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div>
+                  <span className="text-xs uppercase tracking-wider text-slate-400 block">
+                    Campanhas Salvas
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <select
+                      value={campanhaAtivaId || ""}
+                      onChange={(e) => {
+                        const found = campanhas.find((c) => c.id === e.target.value);
+                        if (found) carregarCampanhaNoEditor(found);
+                      }}
+                      className="bg-[#080d18] border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-amber-400"
+                    >
+                      {campanhas.length === 0 && (
+                        <option value="">Nenhuma promoção salva</option>
+                      )}
+                      {campanhas.map((c) => {
+                        const st = getStatusCampanha(c.dataInicio, c.dataFim);
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.nome} ({st.label} • {c.itens?.length || 0} SKUs)
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    <span
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${statusCampanha.badgeClass}`}
+                    >
+                      {statusCampanha.label}
+                    </span>
+
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-950/70 text-emerald-300 border border-emerald-700/50">
+                      Base Sincronizada: <strong>{codigosCatalogo.length}</strong> itens
+                      {ultimaSincronizacao
+                        ? ` (${new Date(ultimaSincronizacao).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })})`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMostrarImportador((prev) => !prev)}
+                  className="px-3.5 py-2 rounded-lg text-sm font-semibold bg-sky-600 hover:bg-sky-500 text-white transition cursor-pointer"
+                >
+                  Sincronizar / Importar Estoque
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNovaPromocao}
+                  className="px-3.5 py-2 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 transition cursor-pointer"
+                >
+                  + Nova Promoção
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSalvarPromocao}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-400 hover:bg-amber-300 text-slate-950 transition cursor-pointer"
+                >
+                  Salvar Promoção
+                </button>
+
+                {campanhaAtivaId && (
+                  <button
+                    type="button"
+                    onClick={handleExcluirCampanha}
+                    className="px-3.5 py-2 rounded-lg text-sm font-medium bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-800/60 transition cursor-pointer"
+                  >
+                    Excluir
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {mostrarImportador && (
+              <div className="bg-[#0e1525] border border-sky-500/50 rounded-2xl p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-base font-bold text-white">
+                      Sincronização da Lista Completa — Dash de Apuração de Estoque
+                    </h2>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Recebe automaticamente todos os itens via{" "}
+                      <code className="text-slate-200">localStorage</code> (
+                      <code className="text-slate-200">
+                        simulador_ofertas_todos_itens_estoque_v1
+                      </code>
+                      ), <code className="text-slate-200">postMessage</code> (
+                      <code className="text-slate-200">SYNC_ESTOQUE_COMPLETO</code>),
+                      URL/JSON, arquivo ou colagem direta.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv,.txt,.json"
+                      onChange={handleArquivoImportado}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 cursor-pointer"
+                    >
+                      Escolher Arquivo (.csv / .json)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMostrarImportador(false)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white cursor-pointer"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+
+                <form
+                  onSubmit={handleBuscarUrlSincronizacao}
+                  className="bg-[#080d18] border border-slate-800 rounded-xl p-3 flex flex-col sm:flex-row items-stretch sm:items-end gap-2.5"
+                >
+                  <div className="flex-1">
+                    <label className="block text-[11px] text-slate-400 mb-1">
+                      URL / Endpoint JSON da Lista do Dash de Estoque (opcional)
+                    </label>
+                    <input
+                      type="url"
+                      value={syncUrl}
+                      onChange={(e) => setSyncUrl(e.target.value)}
+                      placeholder="https://.../estoque-sankhya.json"
+                      className="w-full bg-[#0e1525] border border-slate-700 focus:border-sky-400 rounded-lg px-3 py-1.5 text-xs text-white outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-700/60 transition cursor-pointer"
+                  >
+                    Buscar da URL
+                  </button>
+                </form>
+
+                <form onSubmit={handleImportarTexto} className="space-y-3">
+                  <textarea
+                    rows={5}
+                    value={textoImportacao}
+                    onChange={(e) => setTextoImportacao(e.target.value)}
+                    placeholder="481;COLUNA 8,0MM (7X14);COLUNAS;49,36;478"
+                    className="w-full bg-[#080d18] border border-slate-700 focus:border-sky-400 rounded-xl p-3 text-xs font-mono text-slate-100 outline-none"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="submit"
+                      className="px-4 py-2 rounded-lg text-xs font-semibold bg-sky-500 hover:bg-sky-400 text-slate-950 transition cursor-pointer"
+                    >
+                      Sincronizar e Carregar na Promoção
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {feedback && (
+              <div
+                className={`rounded-xl px-4 py-3 text-sm border flex items-center justify-between ${
+                  feedback.type === "error"
+                    ? "bg-rose-950/60 border-rose-700/70 text-rose-200"
+                    : feedback.type === "success"
+                    ? "bg-emerald-950/60 border-emerald-700/70 text-emerald-200"
+                    : "bg-sky-950/50 border-sky-700/60 text-sky-200"
+                }`}
+              >
+                <span>{feedback.text}</span>
+                <button
+                  type="button"
+                  onClick={() => setFeedback(null)}
+                  className="text-xs opacity-75 hover:opacity-100 ml-4 cursor-pointer"
+                >
+                  Fechar
+                </button>
+              </div>
+            )}
+
+            <form
+              onSubmit={handleInserirSku}
+              className="bg-[#0e1525] border-2 border-amber-400/90 rounded-2xl p-5 shadow-lg"
+            >
+              <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-1.5 h-5 rounded bg-amber-400" />
+                    <h1 className="text-lg md:text-xl font-bold text-white">
+                      Montagem Rápida de Promoção por Código
+                    </h1>
+                  </div>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Defina nome, vigência e digite o{" "}
+                    <strong className="text-slate-200">Código do SKU</strong> da
+                    lista sincronizada do estoque e pressione{" "}
+                    <strong className="text-slate-200">Enter</strong> para adicionar
+                    à tabela de oferta.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 xl:min-w-[780px]">
+                  <div className="lg:col-span-2">
+                    <label className="block text-xs text-slate-300 mb-1">
+                      Nome da Promoção / Campanha
+                    </label>
+                    <input
+                      type="text"
+                      value={nomePromocao}
+                      onChange={(e) => setNomePromocao(e.target.value)}
+                      placeholder="Ex: Queima de Estoque — Sankhya"
+                      className="w-full bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">
+                      Data de Início
+                    </label>
+                    <input
+                      type="date"
+                      value={dataInicio}
+                      onChange={(e) => setDataInicio(e.target.value)}
+                      className="w-full bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">
+                      Data de Fim
+                    </label>
+                    <input
+                      type="date"
+                      value={dataFim}
+                      onChange={(e) => setDataFim(e.target.value)}
+                      className="w-full bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs text-slate-300">
+                        Markup Inicial (%)
+                      </label>
+                      {itens.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleAplicarMarkupEmTodos}
+                          className="text-[11px] text-amber-400 hover:underline cursor-pointer"
+                        >
+                          Aplicar todos
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="number"
+                      step="0.5"
+                      value={markupInicial}
+                      onChange={(e) => setMarkupInicial(e.target.value)}
+                      className="w-full bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-end justify-between gap-3">
+                <div className="text-xs text-slate-400">
+                  SKUs sincronizados na base ({codigosCatalogo.length}):{" "}
+                  <span className="text-slate-300 font-mono">
+                    {codigosCatalogo.slice(0, 15).join(", ")}
+                    {codigosCatalogo.length > 15 ? ` (+${codigosCatalogo.length - 15})` : ""}
+                  </span>
+                </div>
+
+                <div className="flex items-end gap-2">
+                  <div>
+                    <label className="block text-xs text-slate-300 mb-1">
+                      Código do Item (SKU)
+                    </label>
+                    <input
+                      ref={skuInputRef}
+                      type="text"
+                      value={skuInput}
+                      onChange={(e) => setSkuInput(e.target.value)}
+                      placeholder="Ex: 481"
+                      className="w-44 sm:w-52 bg-[#080d18] border-2 border-amber-400/80 focus:border-amber-300 rounded-lg px-3 py-2 text-sm text-white outline-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 rounded-lg text-sm font-bold bg-amber-400 hover:bg-amber-300 text-slate-950 transition cursor-pointer"
+                  >
+                    + Inserir
+                  </button>
+                </div>
+              </div>
+            </form>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-4">
+                <span className="text-xs uppercase tracking-wider text-slate-400">
+                  ITENS NA PROMOÇÃO
+                </span>
+                <div className="mt-2 flex items-baseline justify-between gap-2">
+                  <strong className="text-2xl font-bold text-white">
+                    {kpisLote.totalSkus} SKUs
+                  </strong>
+                  <span className="text-sm font-semibold text-amber-400">
+                    {formatNumber(kpisLote.totalUnidadesOfertadas)} un. ofertadas
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-4">
+                <span className="text-xs uppercase tracking-wider text-slate-400">
+                  CUSTO TOTAL DO LOTE
+                </span>
+                <div className="mt-2 flex items-baseline justify-between gap-2">
+                  <strong className="text-2xl font-bold text-sky-400">
+                    {formatBRL(kpisLote.custoTotalLote)}
+                  </strong>
+                  <span className="text-xs text-slate-400">CMV estimado</span>
+                </div>
+              </div>
+
+              <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-4">
+                <span className="text-xs uppercase tracking-wider text-slate-400">
+                  RECEITA POTENCIAL OFERTA
+                </span>
+                <div className="mt-2 flex items-baseline justify-between gap-2">
+                  <strong className="text-2xl font-bold text-emerald-400">
+                    {formatBRL(kpisLote.receitaPotencial)}
+                  </strong>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                    Faturamento
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-4">
+                <span className="text-xs uppercase tracking-wider text-slate-400">
+                  LUCRO BRUTO & MARGEM MÉDIA
+                </span>
+                <div className="mt-2 flex items-baseline justify-between gap-2">
+                  <strong className="text-2xl font-bold text-amber-400">
+                    {formatBRL(kpisLote.lucroBrutoPotencial)}
+                  </strong>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-amber-950/70 text-amber-300 border border-amber-800/60">
+                    {kpisLote.margemMediaPotencial.toFixed(1)}% margem
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                <div>
+                  <h2 className="text-base md:text-lg font-bold text-white">
+                    Comportamento de Saída a Partir da Data de Início
+                  </h2>
+                  <p className="text-xs md:text-sm text-slate-400">
+                    {statusCampanha.iniciada
+                      ? `Apurando vendas no período de ${formatDatePtBr(
+                          dataInicio
+                        )} (${diasDecorridos}º dia${
+                          diasDecorridos > 1 ? "s" : ""
+                        } de apuração${
+                          diasTotais ? ` de ${diasTotais} dias` : ""
+                        }).`
+                      : dataInicio
+                      ? `A promoção inicia em ${formatDatePtBr(
+                          dataInicio
+                        )}. A apuração de saída será ativada automaticamente na data de início.`
+                      : "Defina uma Data de Início para acompanhar o comportamento de saída dos itens."}
+                  </p>
+                </div>
+
+                {statusCampanha.iniciada && (
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-300 self-start md:self-auto">
+                    Ritmo médio: {formatNumber(kpisSaida.ritmoMedioDia, 1)} un./dia
+                  </span>
+                )}
+              </div>
+
+              {statusCampanha.iniciada ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="bg-[#080d18] border border-slate-800 rounded-xl p-4">
+                      <span className="text-xs text-slate-400 uppercase">
+                        Unidades Vendidas
+                      </span>
+                      <div className="mt-1.5 flex items-baseline justify-between">
+                        <strong className="text-xl font-bold text-white">
+                          {formatNumber(kpisSaida.unidadesVendidas)} /{" "}
+                          {formatNumber(kpisLote.totalUnidadesOfertadas)} un.
+                        </strong>
+                        <span className="text-xs font-semibold text-emerald-400">
+                          {kpisSaida.pctEsgotamento.toFixed(1)}% do lote
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-slate-800 rounded-full mt-2.5 overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-400 rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(100, kpisSaida.pctEsgotamento)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-[#080d18] border border-slate-800 rounded-xl p-4">
+                      <span className="text-xs text-slate-400 uppercase">
+                        Receita Realizada
+                      </span>
+                      <div className="mt-1.5 flex items-baseline justify-between">
+                        <strong className="text-xl font-bold text-emerald-400">
+                          {formatBRL(kpisSaida.receitaRealizada)}
+                        </strong>
+                        <span className="text-xs text-slate-400">
+                          de {formatBRL(kpisLote.receitaPotencial)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        Saldo restante do lote:{" "}
+                        <strong className="text-slate-200">
+                          {formatNumber(kpisSaida.saldoTotalRestante)} un.
+                        </strong>
+                      </p>
+                    </div>
+
+                    <div className="bg-[#080d18] border border-slate-800 rounded-xl p-4">
+                      <span className="text-xs text-slate-400 uppercase">
+                        Lucro & Margem Realizada
+                      </span>
+                      <div className="mt-1.5 flex items-baseline justify-between">
+                        <strong className="text-xl font-bold text-amber-400">
+                          {formatBRL(kpisSaida.lucroRealizado)}
+                        </strong>
+                        <span className="text-xs font-semibold text-amber-300">
+                          {kpisSaida.margemRealizada.toFixed(1)}% margem
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        Calculado sobre vendas do período
+                      </p>
+                    </div>
+
+                    <div className="bg-[#080d18] border border-slate-800 rounded-xl p-4">
+                      <span className="text-xs text-slate-400 uppercase">
+                        Evolução Diária (Un.)
+                      </span>
+                      <div className="mt-2 h-16 flex items-end gap-1.5">
+                        {serieDiariaSaida.map((dia) => (
+                          <div
+                            key={dia.data}
+                            className="flex-1 flex flex-col items-center justify-end h-full group"
+                            title={`${dia.label}: ${dia.unidades} un. (${formatBRL(
+                              dia.receita
+                            )})`}
+                          >
+                            <span className="text-[10px] text-slate-400 mb-0.5">
+                              {dia.unidades}
+                            </span>
+                            <div
+                              className="w-full rounded-t bg-amber-400/85 group-hover:bg-amber-300 transition-all"
+                              style={{ height: `${dia.alturaPct}%` }}
+                            />
+                            <span className="text-[10px] text-slate-500 mt-1">
+                              {dia.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <form
+                    onSubmit={handleRegistrarVendaSimulada}
+                    className="bg-[#080d18] border border-slate-800/90 rounded-xl p-3.5 flex flex-col lg:flex-row lg:items-end justify-between gap-3"
+                  >
+                    <div className="text-xs text-slate-400">
+                      <strong className="text-slate-200 block text-sm">
+                        Simulador de Saída / Venda
+                      </strong>
+                      Registre vendas em datas a partir do início da promoção para
+                      ver o comportamento atualizar em tempo real.
+                    </div>
+
+                    <div className="flex flex-wrap items-end gap-2.5">
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">
+                          SKU
+                        </label>
+                        <select
+                          value={simSku}
+                          onChange={(e) => setSimSku(e.target.value)}
+                          className="bg-[#0e1525] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        >
+                          {Object.values(catalogoSankhya).map((s) => (
+                            <option key={s.codigo} value={s.codigo}>
+                              {s.codigo} — {s.descricao}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">
+                          Qtd Vendida
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={simQtd}
+                          onChange={(e) => setSimQtd(e.target.value)}
+                          className="w-24 bg-[#0e1525] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] text-slate-400 mb-1">
+                          Data da Venda
+                        </label>
+                        <input
+                          type="date"
+                          value={simData}
+                          onChange={(e) => setSimData(e.target.value)}
+                          className="bg-[#0e1525] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition cursor-pointer"
+                      >
+                        + Registrar Venda
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="bg-[#080d18] border border-slate-800/80 rounded-xl p-4 text-sm text-slate-400">
+                  A promoção ainda não iniciou ({statusCampanha.label}). Assim que a
+                  data atual atingir a Data de Início, os indicadores de saída,
+                  receita realizada, margem e ritmo serão exibidos aqui.
+                </div>
+              )}
+            </div>
+
+            <div className="bg-[#0e1525] border border-slate-800/90 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base md:text-lg font-bold text-white">
+                    Itens da Promoção & Performance de Saída
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Ajuste quantidade ofertada, markup ou preço unitário direto na
+                    tabela e acompanhe a saída de cada item.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={filtroGrupo}
+                    onChange={(e) => setFiltroGrupo(e.target.value)}
+                    className="bg-[#080d18] border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+                  >
+                    {gruposDisponiveis.map((g) => (
+                      <option key={g} value={g}>
+                        {g === "TODOS" ? "Todos os grupos" : g}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="flex items-center gap-1.5 text-xs text-slate-300 bg-[#080d18] border border-slate-700 rounded-lg px-2.5 py-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={somenteComSaida}
+                      onChange={(e) => setSomenteComSaida(e.target.checked)}
+                    />
+                    Somente com saída
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      exportarCsvPromocao({
+                        nomePromocao,
+                        dataInicio,
+                        dataFim,
+                        linhasPerformance: itensFiltrados,
+                        iniciada: statusCampanha.iniciada,
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-slate-700 transition cursor-pointer"
+                  >
+                    Exportar CSV
+                  </button>
+
+                  {itens.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleLimparLista}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 transition cursor-pointer"
+                    >
+                      Limpar Itens
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-[#080d18] text-slate-400 border-b border-slate-800 uppercase tracking-wider">
+                      <th className="py-3 px-3">SKU</th>
+                      <th className="py-3 px-3">Descrição / Grupo</th>
+                      <th className="py-3 px-3 text-right">Est. Disp.</th>
+                      <th className="py-3 px-3 text-right">Custo Unit.</th>
+                      <th className="py-3 px-3 text-right">Qtd Oferta</th>
+                      <th className="py-3 px-3 text-right">Markup %</th>
+                      <th className="py-3 px-3 text-right">Preço Oferta</th>
+                      <th className="py-3 px-3 text-right">Margem %</th>
+                      <th className="py-3 px-3 text-right">Total Oferta</th>
+                      {statusCampanha.iniciada && (
+                        <>
+                          <th className="py-3 px-3 text-right">Vendida</th>
+                          <th className="py-3 px-3 text-right">% Ating.</th>
+                          <th className="py-3 px-3 text-right">Saldo</th>
+                          <th className="py-3 px-3 text-right">Média/Dia</th>
+                          <th className="py-3 px-3 text-right">Receita Real.</th>
+                          <th className="py-3 px-3 text-center">Ritmo</th>
+                        </>
+                      )}
+                      <th className="py-3 px-3 text-center">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {itensFiltrados.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={statusCampanha.iniciada ? 16 : 10}
+                          className="py-8 px-4 text-center text-slate-400"
+                        >
+                          Nenhum item na promoção para o filtro selecionado. Digite um
+                          código de SKU acima ou sincronize/importe itens.
+                        </td>
+                      </tr>
+                    ) : (
+                      itensFiltrados.map((item) => (
+                        <tr
+                          key={item.codigo}
+                          className="hover:bg-slate-900/40 transition-colors"
+                        >
+                          <td className="py-2.5 px-3 font-mono font-bold text-amber-300 whitespace-nowrap">
+                            {item.codigo}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <div className="font-medium text-slate-100">
+                              {item.descricao}
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              {item.grupo}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-300 whitespace-nowrap">
+                            {formatNumber(item.estoqueDisp, 2)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-300 whitespace-nowrap">
+                            {formatBRL(item.custoUnit)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={item.qtdOferta}
+                              onChange={(e) =>
+                                handleAtualizarQtdOferta(item.codigo, e.target.value)
+                              }
+                              className="w-20 bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded px-2 py-1 text-right font-mono text-white outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <input
+                              type="number"
+                              step="0.5"
+                              value={item.markupPct}
+                              onChange={(e) =>
+                                handleAtualizarMarkupItem(item.codigo, e.target.value)
+                              }
+                              className="w-20 bg-[#080d18] border border-slate-700 focus:border-amber-400 rounded px-2 py-1 text-right font-mono text-amber-300 outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.precoOferta}
+                              onChange={(e) =>
+                                handleAtualizarPrecoOferta(item.codigo, e.target.value)
+                              }
+                              className="w-24 bg-[#080d18] border border-slate-700 focus:border-emerald-400 rounded px-2 py-1 text-right font-mono text-emerald-300 outline-none"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono text-slate-300 whitespace-nowrap">
+                            {item.margemPct.toFixed(1)}%
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-semibold text-white whitespace-nowrap">
+                            {formatBRL(item.totalOferta)}
+                          </td>
+                          {statusCampanha.iniciada && (
+                            <>
+                              <td className="py-2.5 px-3 text-right font-mono text-emerald-400 whitespace-nowrap">
+                                {formatNumber(item.qtdVendida)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono text-slate-200 whitespace-nowrap">
+                                {item.pctAtingido.toFixed(1)}%
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono text-slate-300 whitespace-nowrap">
+                                {formatNumber(item.saldoRestante)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono text-slate-300 whitespace-nowrap">
+                                {formatNumber(item.mediaDia, 2)}
+                              </td>
+                              <td className="py-2.5 px-3 text-right font-mono text-emerald-300 whitespace-nowrap">
+                                {formatBRL(item.receitaRealizada)}
+                              </td>
+                              <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                                <span
+                                  className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full border ${item.ritmoClass}`}
+                                >
+                                  {item.ritmoLabel}
+                                </span>
+                              </td>
+                            </>
+                          )}
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverItem(item.codigo)}
+                              className="px-2 py-1 rounded text-[11px] bg-rose-950/60 hover:bg-rose-900/70 text-rose-300 border border-rose-800/60 cursor-pointer"
+                            >
+                              Remover
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const rootEl = document.getElementById("root");
+    if (rootEl) {
+      ReactDOM.createRoot(rootEl).render(<PromocoesDashboard />);
+    }
+  </script>
+</body>
+</html>
